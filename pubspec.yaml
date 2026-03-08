@@ -1,0 +1,93 @@
+name: crop_id
+description: CropID - Field spray planning and neighbor crop safety management.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── Backend ──────────────────────────────────────────────────────────────
+  supabase_flutter: ^2.5.6          # Auth, DB, Realtime, Storage
+
+  # ── State Management ─────────────────────────────────────────────────────
+  flutter_riverpod: ^2.5.1          # Primary state management
+  riverpod_annotation: ^2.3.5
+
+  # ── Navigation ───────────────────────────────────────────────────────────
+  go_router: ^13.2.4
+
+  # ── Maps ─────────────────────────────────────────────────────────────────
+  flutter_map: ^6.2.1               # OpenStreetMap-based map
+  latlong2: ^0.9.1                  # Lat/Lng types for flutter_map
+  flutter_map_cancellable_tile_provider: ^2.0.0
+  geolocator: ^12.0.0               # Device GPS location
+  geocoding: ^3.0.0                 # Address <-> coordinates
+
+  # ── UI / UX ───────────────────────────────────────────────────────────────
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0                   # Loading skeletons
+  badges: ^3.1.2                    # Notification count badges
+
+  # ── Forms & Validation ───────────────────────────────────────────────────
+  reactive_forms: ^17.0.1
+
+  # ── Local Storage / Offline ──────────────────────────────────────────────
+  hive_flutter: ^1.1.0              # Local cache for offline support
+  hive: ^2.2.3
+  path_provider: ^2.1.3
+
+  # ── Connectivity ─────────────────────────────────────────────────────────
+  connectivity_plus: ^6.0.3
+
+  # ── Communication (Crop Duster contact) ──────────────────────────────────
+  url_launcher: ^6.3.0              # Phone calls, mailto, map links
+
+  # ── Notifications ────────────────────────────────────────────────────────
+  flutter_local_notifications: ^17.2.2
+
+  # ── Media ─────────────────────────────────────────────────────────────────
+  image_picker: ^1.1.2              # Photo library / camera picker (web + mobile)
+
+  # ── Utilities ────────────────────────────────────────────────────────────
+  intl: ^0.20.2
+  uuid: ^4.4.0
+  logger: ^2.4.0
+  json_annotation: ^4.9.0
+  freezed_annotation: ^2.4.1
+  equatable: ^2.0.5
+  dartz: ^0.10.1                    # Functional programming / Either type
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+  hive_generator: ^2.0.1
+  mocktail: ^1.0.3
+
+flutter:
+  uses-material-design: true
+  # Uncomment when asset folders are created:
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
+  # Uncomment when Inter font files are added to assets/fonts/:
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700

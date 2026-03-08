@@ -1,0 +1,7 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          field_rename: snake        # maps fullName ↔ full_name automatically
+          explicit_to_json: true     # ensures nested objects serialize properly
