@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../farm_map/providers/farm_map_provider.dart';
+import '../../data/models/spray_plan.dart';
 import '../../providers/spray_plan_provider.dart';
 import '../widgets/chemical_card.dart';
 import '../widgets/danger_alert_banner.dart';
@@ -16,8 +17,15 @@ class SprayPlanScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedField = ref.watch(selectedFieldProvider);
+    final selectedFieldPlanningReady =
+        ref.watch(selectedFieldPlanningReadyProvider);
+    final selectedFieldPlanningMessage =
+        ref.watch(selectedFieldPlanningMessageProvider);
     final selectedChemicals = ref.watch(selectedChemicalsProvider);
     final dangerousFields = ref.watch(dangerousFieldsProvider);
+    final saveState = ref.watch(sprayPlanSaveStateProvider);
+    final lastSaveMessage = ref.watch(lastSaveUserMessageProvider);
+    final myPlansAsync = ref.watch(mySprayPlansProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Spray Plan')),
@@ -29,10 +37,9 @@ class SprayPlanScreen extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.location_on_outlined),
               title: Text(selectedField.name),
-              subtitle: Text(
-                  'Crop: ${selectedField.currentCropName ?? 'Unknown'}'),
-              tileColor:
-                  Theme.of(context).colorScheme.primaryContainer,
+              subtitle:
+                  Text('Crop: ${selectedField.currentCropName ?? 'Unknown'}'),
+              tileColor: Theme.of(context).colorScheme.primaryContainer,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
@@ -50,9 +57,36 @@ class SprayPlanScreen extends ConsumerWidget {
 
           // ── Danger alert ───────────────────────────────────────────────
           if (dangerousFields.isNotEmpty)
-            DangerAlertBanner(dangerousFieldCount: dangerousFields.length),
+            DangerAlertBanner(
+              dangerousFieldCount: dangerousFields.length,
+              saveState: saveState,
+            ),
 
           const SizedBox(height: 20),
+
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.save_outlined),
+              title: Text(
+                switch (saveState) {
+                  SprayPlanSaveState.idle => AppConstants.saveStateIdleLabel,
+                  SprayPlanSaveState.saving =>
+                    AppConstants.saveStateSavingLabel,
+                  SprayPlanSaveState.saved => AppConstants.saveStateSavedLabel,
+                  SprayPlanSaveState.failed =>
+                    AppConstants.saveStateFailedLabel,
+                },
+              ),
+              subtitle: lastSaveMessage == null ? null : Text(lastSaveMessage),
+              trailing: TextButton(
+                onPressed: () =>
+                    _showSavedPlansBottomSheet(context, myPlansAsync),
+                child: const Text('View Saved Plans'),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
 
           // ── Selected chemicals ─────────────────────────────────────────
           Text('Selected Chemicals (${selectedChemicals.length})',
@@ -70,9 +104,8 @@ class SprayPlanScreen extends ConsumerWidget {
                   chemical: c,
                   onRemove: () {
                     final updated = [...selectedChemicals]..remove(c);
-                    ref
-                        .read(selectedChemicalsProvider.notifier)
-                        .state = updated;
+                    ref.read(selectedChemicalsProvider.notifier).state =
+                        updated;
                   },
                 )),
 
@@ -89,7 +122,7 @@ class SprayPlanScreen extends ConsumerWidget {
           PrimaryButton(
             label: 'Save Plan & Find Spray Service',
             isLoading: ref.watch(sprayPlanNotifierProvider).isLoading,
-            onPressed: selectedField == null || selectedChemicals.isEmpty
+            onPressed: !selectedFieldPlanningReady || selectedChemicals.isEmpty
                 ? null
                 : () async {
                     final notifier =
@@ -103,9 +136,8 @@ class SprayPlanScreen extends ConsumerWidget {
 
                     await notifier.save(
                       dangerousFieldIds: dangerousFields,
-                      chemicalNames: selectedChemicals
-                          .map((c) => c.name)
-                          .toList(),
+                      chemicalNames:
+                          selectedChemicals.map((c) => c.name).toList(),
                     );
 
                     if (!context.mounted) return;
@@ -122,8 +154,77 @@ class SprayPlanScreen extends ConsumerWidget {
                     );
                   },
           ),
+          if (!selectedFieldPlanningReady &&
+              selectedFieldPlanningMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                selectedFieldPlanningMessage,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          if (saveState == SprayPlanSaveState.failed)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text(AppConstants.retryActionLabel),
+                onPressed: () async {
+                  await ref
+                      .read(sprayPlanNotifierProvider.notifier)
+                      .retryLastSave();
+                },
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  void _showSavedPlansBottomSheet(
+    BuildContext context,
+    AsyncValue<List<SprayPlan>> myPlansAsync,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) {
+        return SafeArea(
+          child: myPlansAsync.when(
+            loading: () => const Center(
+                child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            )),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Unable to load saved plans: $e'),
+            ),
+            data: (plans) {
+              if (plans.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No saved plans found yet.'),
+                );
+              }
+              return ListView.separated(
+                shrinkWrap: true,
+                itemCount: plans.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (_, index) {
+                  final plan = plans[index];
+                  return ListTile(
+                    leading: const Icon(Icons.description_outlined),
+                    title: Text(plan.fieldName ?? 'Unnamed field'),
+                    subtitle: Text(
+                      'Chemicals: ${plan.chemicals.length} • Status: ${plan.status.name}',
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

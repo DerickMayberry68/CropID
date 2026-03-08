@@ -52,6 +52,9 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
   SprayPlanNotifier(this._ref, this._repo, this._farmerId)
       : super(const AsyncValue.data(null));
 
+  List<String>? _lastDangerousFieldIds;
+  List<String>? _lastChemicalNames;
+
   void initForField(String fieldId, String fieldName) {
     if (_farmerId == null) return;
     _ref.read(sprayPlanSaveStateProvider.notifier).state =
@@ -79,6 +82,8 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
   }) async {
     final plan = state.value;
     if (plan == null) return;
+    _lastDangerousFieldIds = dangerousFieldIds;
+    _lastChemicalNames = chemicalNames;
 
     // Stamp danger info onto plan before persisting
     final planWithDanger =
@@ -93,6 +98,7 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
       (err) {
         _ref.read(sprayPlanSaveStateProvider.notifier).state =
             SprayPlanSaveState.failed;
+        _ref.read(lastSaveUserMessageProvider.notifier).state = err;
         state = AsyncValue.error(
           SupabaseService.toUserMessage(err),
           StackTrace.current,
@@ -101,6 +107,7 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
       (saved) async {
         _ref.read(sprayPlanSaveStateProvider.notifier).state =
             SprayPlanSaveState.saved;
+        _ref.read(lastSaveUserMessageProvider.notifier).state = null;
         state = AsyncValue.data(saved);
 
         // Call edge function to create danger_notifications rows
@@ -135,10 +142,32 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
       },
     );
   }
+
+  Future<void> retryLastSave() async {
+    final dangerous = _lastDangerousFieldIds;
+    final chemicals = _lastChemicalNames;
+    if (dangerous == null || chemicals == null) return;
+    await save(
+      dangerousFieldIds: dangerous,
+      chemicalNames: chemicals,
+    );
+  }
 }
 
 final sprayPlanSaveStateProvider =
     StateProvider<SprayPlanSaveState>((_) => SprayPlanSaveState.idle);
+
+final lastSaveUserMessageProvider = StateProvider<String?>((_) => null);
+
+final mySprayPlansProvider =
+    FutureProvider.autoDispose<List<SprayPlan>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return [];
+
+  final repo = ref.watch(chemicalRepositoryProvider);
+  final result = await repo.getMySprayPlans(user.id);
+  return result.fold((_) => [], (plans) => plans);
+});
 
 final sprayPlanNotifierProvider =
     StateNotifierProvider<SprayPlanNotifier, AsyncValue<SprayPlan?>>((ref) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/loading_overlay.dart';
 import '../../data/models/chemical.dart';
 import '../../providers/spray_plan_provider.dart';
@@ -28,6 +29,7 @@ class _ChemicalSelectorScreenState
   Widget build(BuildContext context) {
     final results = ref.watch(chemicalSearchResultsProvider);
     final selected = ref.watch(selectedChemicalsProvider);
+    final saveState = ref.watch(sprayPlanSaveStateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,16 +45,15 @@ class _ChemicalSelectorScreenState
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchCtrl.clear();
-                          ref
-                              .read(chemicalSearchQueryProvider.notifier)
-                              .state = '';
+                          ref.read(chemicalSearchQueryProvider.notifier).state =
+                              '';
                         },
                       )
                     : null,
@@ -82,6 +83,32 @@ class _ChemicalSelectorScreenState
                 },
               ),
       ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${selected.length} selected • '
+                '${switch (saveState) {
+                  SprayPlanSaveState.idle => AppConstants.saveStateIdleLabel,
+                  SprayPlanSaveState.saving =>
+                    AppConstants.saveStateSavingLabel,
+                  SprayPlanSaveState.saved => AppConstants.saveStateSavedLabel,
+                  SprayPlanSaveState.failed =>
+                    AppConstants.saveStateFailedLabel,
+                }}',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -92,9 +119,11 @@ class _ChemicalSelectorScreenState
       ref.read(selectedChemicalsProvider.notifier).state = updated;
     } else {
       // Check both directions of incompatibility
-      final incompatible = current.where((c) =>
-          c.incompatibleWithChemicalIds.contains(chem.id) ||
-          chem.incompatibleWithChemicalIds.contains(c.id)).toList();
+      final incompatible = current
+          .where((c) =>
+              c.incompatibleWithChemicalIds.contains(chem.id) ||
+              chem.incompatibleWithChemicalIds.contains(c.id))
+          .toList();
 
       if (incompatible.isNotEmpty) {
         _showIncompatibilityWarning(chem, incompatible, updated);

@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../providers/spray_plan_save_state.dart';
 
 class DangerAlertBanner extends StatelessWidget {
   final int dangerousFieldCount;
-  const DangerAlertBanner({super.key, required this.dangerousFieldCount});
+  final SprayPlanSaveState? saveState;
+
+  const DangerAlertBanner({
+    super.key,
+    required this.dangerousFieldCount,
+    this.saveState,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +46,25 @@ class DangerAlertBanner extends StatelessWidget {
                   'Check the map for details.',
                   style: TextStyle(color: AppTheme.dangerRed.withOpacity(0.8)),
                 ),
+                if (saveState != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    switch (saveState!) {
+                      SprayPlanSaveState.saved =>
+                        AppConstants.saveStateSavedLabel,
+                      SprayPlanSaveState.failed =>
+                        AppConstants.saveStateFailedLabel,
+                      SprayPlanSaveState.saving =>
+                        AppConstants.saveStateSavingLabel,
+                      SprayPlanSaveState.idle =>
+                        AppConstants.saveStateIdleLabel,
+                    },
+                    style: TextStyle(
+                      color: AppTheme.dangerRed.withOpacity(0.85),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

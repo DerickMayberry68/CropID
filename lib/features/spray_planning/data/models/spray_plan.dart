@@ -6,10 +6,14 @@ part 'spray_plan.freezed.dart';
 part 'spray_plan.g.dart';
 
 enum SprayPlanStatus {
-  @JsonValue('draft') draft,
-  @JsonValue('scheduled') scheduled,
-  @JsonValue('completed') completed,
-  @JsonValue('cancelled') cancelled,
+  @JsonValue('draft')
+  draft,
+  @JsonValue('scheduled')
+  scheduled,
+  @JsonValue('completed')
+  completed,
+  @JsonValue('cancelled')
+  cancelled,
 }
 
 @freezed
@@ -22,6 +26,7 @@ class SprayPlan with _$SprayPlan {
     @Default([]) List<Chemical> chemicals,
     DateTime? scheduledDate,
     @Default(SprayPlanStatus.draft) SprayPlanStatus status,
+
     /// Adjacent field IDs that have at least one chemical danger.
     @Default([]) List<String> dangerousAdjacentFieldIds,
     String? notes,
@@ -30,4 +35,13 @@ class SprayPlan with _$SprayPlan {
 
   factory SprayPlan.fromJson(Map<String, dynamic> json) =>
       _$SprayPlanFromJson(json);
+}
+
+extension SprayPlanMetadataExt on SprayPlan {
+  /// Treat plan as persisted when it has an ID and server timestamp.
+  bool get isPersisted =>
+      id.isNotEmpty && (createdAt != null || scheduledDate != null);
+
+  /// Stable key used for deterministic sorting in UI lists.
+  String get stableKey => '$id-${createdAt?.millisecondsSinceEpoch ?? 0}';
 }

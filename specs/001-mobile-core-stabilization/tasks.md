@@ -49,19 +49,19 @@
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Add widget test for successful spray-plan save confirmation in `test/features/spray_planning/spray_plan_save_success_test.dart`
-- [ ] T012 [P] [US1] Add widget test for failed save and retry behavior in `test/features/spray_planning/spray_plan_save_failure_retry_test.dart`
-- [ ] T013 [P] [US1] Add provider test for deterministic saved-plan retrieval state in `test/features/spray_planning/saved_plan_retrieval_test.dart`
+- [x] T011 [P] [US1] Add widget test for successful spray-plan save confirmation in `test/features/spray_planning/spray_plan_save_success_test.dart`
+- [x] T012 [P] [US1] Add widget test for failed save and retry behavior in `test/features/spray_planning/spray_plan_save_failure_retry_test.dart`
+- [x] T013 [P] [US1] Add provider test for deterministic saved-plan retrieval state in `test/features/spray_planning/saved_plan_retrieval_test.dart`
 
 ### Implementation for User Story 1
 
-- [ ] T014 [P] [US1] Extend spray-plan model for save-state metadata support in `lib/features/spray_planning/data/models/spray_plan.dart`
-- [ ] T015 [P] [US1] Harden spray-plan persistence and retrieval mapping in `lib/features/spray_planning/data/chemical_repository.dart`
-- [ ] T016 [US1] Implement explicit save lifecycle transitions and retry behavior in `lib/features/spray_planning/providers/spray_plan_provider.dart`
-- [ ] T017 [US1] Harden field selection preconditions before plan initialization in `lib/features/farm_map/providers/farm_map_provider.dart`
-- [ ] T018 [US1] Surface explicit save status and saved-plan access in `lib/features/spray_planning/presentation/screens/spray_plan_screen.dart`
-- [ ] T019 [US1] Align danger banner behavior with save-state transitions in `lib/features/spray_planning/presentation/widgets/danger_alert_banner.dart`
-- [ ] T020 [US1] Align plan-save terminology and status messaging in `lib/features/spray_planning/presentation/screens/chemical_selector_screen.dart`
+- [x] T014 [P] [US1] Extend spray-plan model for save-state metadata support in `lib/features/spray_planning/data/models/spray_plan.dart`
+- [x] T015 [P] [US1] Harden spray-plan persistence and retrieval mapping in `lib/features/spray_planning/data/chemical_repository.dart`
+- [x] T016 [US1] Implement explicit save lifecycle transitions and retry behavior in `lib/features/spray_planning/providers/spray_plan_provider.dart`
+- [x] T017 [US1] Harden field selection preconditions before plan initialization in `lib/features/farm_map/providers/farm_map_provider.dart`
+- [x] T018 [US1] Surface explicit save status and saved-plan access in `lib/features/spray_planning/presentation/screens/spray_plan_screen.dart`
+- [x] T019 [US1] Align danger banner behavior with save-state transitions in `lib/features/spray_planning/presentation/widgets/danger_alert_banner.dart`
+- [x] T020 [US1] Align plan-save terminology and status messaging in `lib/features/spray_planning/presentation/screens/chemical_selector_screen.dart`
 
 **Checkpoint**: US1 is independently functional and testable (MVP).
 

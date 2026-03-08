@@ -2,6 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dartz/dartz.dart';
 
 import '../../../core/constants/supabase_constants.dart';
+import '../../../core/utils/extensions.dart';
+import '../../../shared/services/supabase_service.dart';
 import 'models/chemical.dart';
 import 'models/spray_plan.dart';
 
@@ -47,9 +49,17 @@ class ChemicalRepository {
           .select('*, spray_plan_chemicals(*, chemicals(*))')
           .eq('farmer_id', farmerId)
           .order('created_at', ascending: false);
-      return Right((data as List).map((e) => SprayPlan.fromJson(e)).toList());
+      final plans = (data as List)
+          .whereType<Map<String, dynamic>>()
+          .map(SprayPlan.fromJson)
+          .toList()
+          .sortedByCreatedAtDesc(
+            createdAt: (plan) => plan.createdAt,
+            stableId: (plan) => plan.id,
+          );
+      return Right(plans);
     } catch (e) {
-      return Left(e.toString());
+      return Left(SupabaseService.toUserMessage(e));
     }
   }
 
@@ -86,7 +96,7 @@ class ChemicalRepository {
 
       return Right(saved.copyWith(chemicals: plan.chemicals));
     } catch (e) {
-      return Left(e.toString());
+      return Left(SupabaseService.toUserMessage(e));
     }
   }
 

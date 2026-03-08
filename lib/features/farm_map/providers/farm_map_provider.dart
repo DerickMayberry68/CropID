@@ -28,6 +28,25 @@ final myFieldsProvider = FutureProvider.autoDispose<List<Field>>((ref) async {
 
 final selectedFieldProvider = StateProvider<Field?>((ref) => null);
 
+final selectedFieldPlanningReadyProvider = Provider<bool>((ref) {
+  final field = ref.watch(selectedFieldProvider);
+  if (field == null) return false;
+  if (field.id.trim().isEmpty || field.name.trim().isEmpty) return false;
+  return field.boundaryPoints.length >= 3;
+});
+
+final selectedFieldPlanningMessageProvider = Provider<String?>((ref) {
+  final field = ref.watch(selectedFieldProvider);
+  if (field == null) return 'Select a field before creating a spray plan.';
+  if (field.id.trim().isEmpty || field.name.trim().isEmpty) {
+    return 'Selected field is missing required details.';
+  }
+  if (field.boundaryPoints.length < 3) {
+    return 'Selected field boundary is incomplete.';
+  }
+  return null;
+});
+
 // ── Adjacent fields ───────────────────────────────────────────────────────
 
 final adjacentFieldsProvider =
