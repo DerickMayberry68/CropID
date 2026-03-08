@@ -140,7 +140,7 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.science_outlined),
-                    label: const Text('Plan Spray'),
+                    label: const Text('Plan Application'),
                     onPressed: () {
                       Navigator.pop(ctx);
                       context.push(AppRoutes.sprayPlan);
@@ -246,7 +246,30 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                           height: 60,
                           child: GestureDetector(
                             onTap: () => _onFieldTap(field),
-                            child: Container(color: Colors.transparent),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: field.id == selectedField?.id
+                                        ? AppTheme.accentAmber
+                                        : AppTheme.primaryGreenLight,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppTheme.backgroundBase,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.place,
+                                    size: 16,
+                                    color: AppTheme.backgroundBase,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       )
@@ -289,17 +312,18 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                         onLocate: _centerOnUserLocation,
                       ),
                       const SizedBox(height: 14),
-                      _OperationsCard(
-                        selectedField: selectedField,
-                        fieldCount: myFieldCount,
-                        adjacentCount: adjacentCount,
-                        unreadAlerts: unreadAlerts.length,
-                        onPlanSpray: selectedField == null
-                            ? null
-                            : () => context.push(AppRoutes.sprayPlan),
-                        onOpenServices: () =>
-                            context.push(AppRoutes.cropDusters),
-                      ),
+                      if (selectedField != null)
+                        _OperationsCard(
+                          selectedField: selectedField,
+                          fieldCount: myFieldCount,
+                          adjacentCount: adjacentCount,
+                          unreadAlerts: unreadAlerts.length,
+                          onPlanSpray: () => context.push(AppRoutes.sprayPlan),
+                          onOpenServices: () =>
+                              context.push(AppRoutes.cropDusters),
+                        )
+                      else
+                        _SelectFieldHintCard(mappedFieldCount: myFieldCount),
                       if (latestUnreadAlert != null) ...[
                         const SizedBox(height: 14),
                         _UnreadAlertCard(
@@ -349,6 +373,39 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                   )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectFieldHintCard extends StatelessWidget {
+  final int mappedFieldCount;
+
+  const _SelectFieldHintCard({
+    required this.mappedFieldCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.panelDecoration(),
+      child: Row(
+        children: [
+          const Icon(Icons.touch_app_rounded,
+              color: AppTheme.primaryGreenLight),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              mappedFieldCount == 0
+                  ? 'Map your first field to start application planning.'
+                  : 'Tap a field marker to open field actions and planning tools.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppTheme.textMuted,
+                  ),
+            ),
           ),
         ],
       ),
@@ -482,12 +539,19 @@ class _OperationsCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             selectedField == null
-                ? 'Tap a mapped boundary to inspect field details, see neighboring exposure, and launch a spray plan.'
+                ? 'Tap a mapped boundary to inspect field details, see neighboring exposure, and launch an application plan.'
                 : '${selectedField?.currentCropName ?? 'Crop not set'} • Visibility ${selectedField!.visibility.name.capitalize}',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppTheme.textMuted,
                 ),
           ),
+          if (selectedField == null)
+            Text(
+              'Use Application Plan to save treatment details before contacting services.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppTheme.textMuted,
+                  ),
+            ),
           const SizedBox(height: 18),
           const Divider(),
           const SizedBox(height: 16),
@@ -532,7 +596,7 @@ class _OperationsCard extends StatelessWidget {
                   onPressed: onPlanSpray,
                   icon: const Icon(Icons.science_outlined),
                   label: Text(
-                    selectedField == null ? 'Select Field' : 'Plan Spray',
+                    selectedField == null ? 'Select Field' : 'Plan Application',
                   ),
                 ),
               ),
@@ -650,7 +714,7 @@ class _UnreadAlertCard extends StatelessWidget {
           Text(
             senderFarmName != null
                 ? '$senderFarmName plans to spray near ${fieldName ?? 'one of your fields'}. Review the alert before conditions change.'
-                : 'A nearby spray plan may affect ${fieldName ?? 'one of your fields'}. Review the alert before conditions change.',
+                : 'A nearby application plan may affect ${fieldName ?? 'one of your fields'}. Review the alert before conditions change.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppTheme.textMuted,
                 ),

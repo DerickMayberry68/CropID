@@ -16,7 +16,7 @@ class MainShell extends ConsumerWidget {
     (icon: Icons.map_outlined, label: 'My Farm', route: AppRoutes.home),
     (
       icon: Icons.science_outlined,
-      label: 'Spray Plan',
+      label: 'Application Plan',
       route: AppRoutes.sprayPlan
     ),
     (

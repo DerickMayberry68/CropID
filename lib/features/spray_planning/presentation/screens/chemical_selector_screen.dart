@@ -5,6 +5,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/loading_overlay.dart';
 import '../../data/models/chemical.dart';
 import '../../providers/spray_plan_provider.dart';
+import '../../providers/spray_plan_save_state.dart';
 import '../widgets/chemical_card.dart';
 
 class ChemicalSelectorScreen extends ConsumerStatefulWidget {

@@ -44,12 +44,13 @@ class ChemicalRepository {
   Future<Either<String, List<SprayPlan>>> getMySprayPlans(
       String farmerId) async {
     try {
-      final data = await _client
+      final planData = await _client
           .from(SupabaseConstants.sprayPlansTable)
-          .select('*, spray_plan_chemicals(*, chemicals(*))')
+          .select()
           .eq('farmer_id', farmerId)
           .order('created_at', ascending: false);
-      final plans = (data as List)
+
+      final plans = (planData as List)
           .whereType<Map<String, dynamic>>()
           .map(SprayPlan.fromJson)
           .toList()
@@ -57,7 +58,54 @@ class ChemicalRepository {
             createdAt: (plan) => plan.createdAt,
             stableId: (plan) => plan.id,
           );
-      return Right(plans);
+
+      if (plans.isEmpty) return Right(plans);
+
+      final planIds =
+          plans.map((p) => p.id).where((id) => id.isNotEmpty).toList();
+      if (planIds.isEmpty) return Right(plans);
+
+      final junctionData = await _client
+          .from(SupabaseConstants.sprayPlanChemicalsTable)
+          .select('spray_plan_id, chemical_id')
+          .inFilter('spray_plan_id', planIds);
+
+      final junctionRows =
+          (junctionData as List).whereType<Map<String, dynamic>>();
+      final chemicalsByPlanId = <String, List<String>>{};
+      for (final row in junctionRows) {
+        final planId = row['spray_plan_id'] as String?;
+        final chemicalId = row['chemical_id'] as String?;
+        if (planId == null || chemicalId == null) continue;
+        chemicalsByPlanId.putIfAbsent(planId, () => []).add(chemicalId);
+      }
+
+      final allChemicalIds =
+          chemicalsByPlanId.values.expand((ids) => ids).toSet().toList();
+
+      if (allChemicalIds.isEmpty) return Right(plans);
+
+      final chemicalData = await _client
+          .from(SupabaseConstants.chemicalsTable)
+          .select()
+          .inFilter('id', allChemicalIds);
+
+      final chemicalsById = {
+        for (final row
+            in (chemicalData as List).whereType<Map<String, dynamic>>())
+          (row['id'] as String): Chemical.fromJson(row),
+      };
+
+      final hydratedPlans = plans.map((plan) {
+        final chemicalIds = chemicalsByPlanId[plan.id] ?? const <String>[];
+        final hydratedChemicals = chemicalIds
+            .map((id) => chemicalsById[id])
+            .whereType<Chemical>()
+            .toList();
+        return plan.copyWith(chemicals: hydratedChemicals);
+      }).toList();
+
+      return Right(hydratedPlans);
     } catch (e) {
       return Left(SupabaseService.toUserMessage(e));
     }
@@ -95,6 +143,44 @@ class ChemicalRepository {
       }
 
       return Right(saved.copyWith(chemicals: plan.chemicals));
+    } catch (e) {
+      return Left(SupabaseService.toUserMessage(e));
+    }
+  }
+
+  Future<Either<String, SprayPlan>> updateSprayPlan(SprayPlan plan) async {
+    try {
+      final json = plan.toJson()
+        ..remove('chemicals')
+        ..remove('current_crop_name')
+        ..remove('created_at');
+
+      final data = await _client
+          .from(SupabaseConstants.sprayPlansTable)
+          .update(json)
+          .eq('id', plan.id)
+          .select()
+          .single();
+
+      await _client
+          .from(SupabaseConstants.sprayPlanChemicalsTable)
+          .delete()
+          .eq('spray_plan_id', plan.id);
+
+      if (plan.chemicals.isNotEmpty) {
+        final junctionRows = plan.chemicals
+            .map((c) => {
+                  'spray_plan_id': plan.id,
+                  'chemical_id': c.id,
+                })
+            .toList();
+        await _client
+            .from(SupabaseConstants.sprayPlanChemicalsTable)
+            .insert(junctionRows);
+      }
+
+      final updated = SprayPlan.fromJson(data);
+      return Right(updated.copyWith(chemicals: plan.chemicals));
     } catch (e) {
       return Left(SupabaseService.toUserMessage(e));
     }

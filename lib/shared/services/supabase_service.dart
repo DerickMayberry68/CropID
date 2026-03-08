@@ -47,23 +47,38 @@ class SupabaseService {
     Map<String, String>? headers,
     Object? body,
   }) async {
-    await requireValidSession();
+    // Edge functions are sensitive to stale local session state; refresh first.
+    var session = await requireValidSession(forceRefresh: true);
+    final buildHeaders = (String accessToken) => <String, String>{
+          if (headers != null) ...headers,
+          'Authorization': 'Bearer $accessToken',
+        };
 
     try {
       return await client.functions.invoke(
         functionName,
-        headers: headers,
+        headers: buildHeaders(session.accessToken),
         body: body,
       );
     } on FunctionException catch (error) {
       if (error.status != 401) rethrow;
 
-      await requireValidSession(forceRefresh: true);
-      return client.functions.invoke(
-        functionName,
-        headers: headers,
-        body: body,
-      );
+      try {
+        session = await requireValidSession(forceRefresh: true);
+        return await client.functions.invoke(
+          functionName,
+          headers: buildHeaders(session.accessToken),
+          body: body,
+        );
+      } on FunctionException catch (retryError) {
+        if (retryError.status == 401) {
+          await client.auth.signOut();
+          throw AuthSessionMissingException(
+            'Session could not be validated for secure actions. Please sign in again.',
+          );
+        }
+        rethrow;
+      }
     }
   }
 

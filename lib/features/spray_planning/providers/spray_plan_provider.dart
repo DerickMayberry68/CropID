@@ -68,6 +68,13 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
     ));
   }
 
+  void loadExistingPlan(SprayPlan plan) {
+    _ref.read(sprayPlanSaveStateProvider.notifier).state =
+        SprayPlanSaveState.idle;
+    _ref.read(lastSaveUserMessageProvider.notifier).state = null;
+    state = AsyncValue.data(plan);
+  }
+
   void updateChemicals(List<Chemical> chemicals) {
     state.whenData((plan) {
       if (plan == null) return;
@@ -80,6 +87,7 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
   Future<void> save({
     required List<String> dangerousFieldIds,
     required List<String> chemicalNames,
+    bool notifyNeighbors = true,
   }) async {
     final plan = state.value;
     if (plan == null) return;
@@ -93,7 +101,10 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
     _ref.read(sprayPlanSaveStateProvider.notifier).state =
         SprayPlanSaveState.saving;
     state = const AsyncValue.loading();
-    final result = await _repo.saveSprayPlan(planWithDanger);
+    final isUpdate = planWithDanger.isPersisted;
+    final result = isUpdate
+        ? await _repo.updateSprayPlan(planWithDanger)
+        : await _repo.saveSprayPlan(planWithDanger);
 
     result.fold(
       (err) {
@@ -110,9 +121,10 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
             SprayPlanSaveState.saved;
         _ref.read(lastSaveUserMessageProvider.notifier).state = null;
         state = AsyncValue.data(saved);
+        _ref.invalidate(mySprayPlansProvider);
 
         // Call edge function to create danger_notifications rows
-        if (dangerousFieldIds.isNotEmpty) {
+        if (notifyNeighbors && !isUpdate && dangerousFieldIds.isNotEmpty) {
           try {
             final response = await SupabaseService.invokeAuthedFunction(
               SupabaseConstants.sendNotificationFunction,

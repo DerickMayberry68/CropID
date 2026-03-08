@@ -37,7 +37,9 @@ final selectedFieldPlanningReadyProvider = Provider<bool>((ref) {
 
 final selectedFieldPlanningMessageProvider = Provider<String?>((ref) {
   final field = ref.watch(selectedFieldProvider);
-  if (field == null) return 'Select a field before creating a spray plan.';
+  if (field == null) {
+    return 'Select a field before creating an application plan.';
+  }
   if (field.id.trim().isEmpty || field.name.trim().isEmpty) {
     return 'Selected field is missing required details.';
   }

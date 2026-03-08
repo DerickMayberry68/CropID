@@ -213,7 +213,12 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
             ),
             child: Text(
               message,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 13,
+                height: 1.45,
+                color: Color(0xFF1E1E1E),
+              ),
             ),
           ),
           const SizedBox(height: 24),

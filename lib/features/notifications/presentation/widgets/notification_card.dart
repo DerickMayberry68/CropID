@@ -63,7 +63,7 @@ class NotificationCard extends ConsumerWidget {
                             Text(
                               notification.affectedFieldName != null
                                   ? '${notification.affectedFieldName} may be at risk'
-                                  : 'Nearby spray planned',
+                                  : 'Nearby application planned',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 6),
