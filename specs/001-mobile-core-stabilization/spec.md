@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-mobile-core-stabilization`  
 **Created**: 2026-03-07  
-**Status**: Draft  
+**Status**: In Progress  
 **Input**: User description: "Create spec `mobile-core-stabilization` for CropID to stabilize and polish the farmer mobile app so core workflows are reliable, coherent, and clearly reflect backend state."
 
 ## User Scenarios & Testing *(mandatory)*
@@ -33,6 +33,8 @@ As a farmer, I can select a field, create a spray plan, save it, and immediately
 1. **Given** an authenticated farmer with at least one field, **When** the farmer creates and saves a spray plan, **Then** the app shows an immediate success state and the saved plan is retrievable from a visible saved-plans surface.
 2. **Given** the farmer edits a draft before saving, **When** the save action is completed, **Then** the stored plan reflects the latest edits and no stale values are shown in the confirmation state.
 3. **Given** temporary connectivity loss during save, **When** the farmer attempts to save, **Then** the app shows clear failure or retry guidance and does not falsely indicate success.
+4. **Given** a farmer reopens a previously saved plan, **When** they edit chemicals or mark the plan completed, **Then** changes persist and saved-plan status reflects the new state.
+5. **Given** a farmer works on a small mobile viewport with multiple selected chemicals, **When** the plan screen grows in length, **Then** the primary save action remains reachable via scrolling and is not obscured by navigation chrome.
 
 ---
 
@@ -69,6 +71,7 @@ As a farmer, I can move from a saved spray plan into contacting a crop duster wi
 ### Edge Cases
 
 - Save action is triggered repeatedly (double tap or rapid retries): only one final persisted result is represented to the user, and duplicate plan records are not created.
+- Selected chemicals include duplicate IDs from prior state or repeated toggles: persistence de-duplicates associations and does not fail on join-table uniqueness constraints.
 - A field is made private or otherwise becomes unavailable between plan draft and save: user receives a clear message and cannot save against invalid field context.
 - Alert list loads while connectivity is unstable: previously loaded alerts remain visible with clear sync state rather than a blank or misleading screen.
 - Service directory entries are inactive or missing contact channels: contact actions clearly indicate unavailable paths and offer fallback options.
@@ -81,6 +84,8 @@ As a farmer, I can move from a saved spray plan into contacting a crop duster wi
 - **FR-001**: The system MUST allow farmers to select and manage their own fields reliably, with clear field identity and current status shown during planning actions.
 - **FR-002**: The system MUST allow farmers to create, edit, and save spray plans with explicit and user-visible save outcomes (success, failure, retry needed).
 - **FR-003**: The system MUST provide a visible saved-plans view where farmers can retrieve recently saved plans and distinguish draft-like states from saved states.
+- **FR-003a**: The system MUST allow farmers to open a saved plan from the saved-plans surface, edit it, and persist updates without creating duplicate records.
+- **FR-003b**: The system MUST allow farmers to mark a saved plan as completed and reflect that status in subsequent retrieval views.
 - **FR-004**: The system MUST ensure saved plan details shown in the mobile app match persisted backend state for field, treatment, and risk-summary data.
 - **FR-005**: The system MUST prevent false-positive save confirmations; when persistence fails, users must receive clear corrective guidance.
 - **FR-006**: The system MUST generate and present risk alerts consistently when neighbor-risk conditions are met and make those alerts accessible in a coherent inbox.
@@ -88,7 +93,10 @@ As a farmer, I can move from a saved spray plan into contacting a crop duster wi
 - **FR-008**: The system MUST provide a coherent handoff from saved spray plans to crop duster contact actions, carrying accurate plan context.
 - **FR-009**: The system MUST preserve farmer data ownership boundaries and only expose data the farmer is authorized to view or share through existing workflows.
 - **FR-010**: The system MUST apply consistent terminology and interaction patterns across field, planning, alert, and contact flows to reduce user confusion.
+- **FR-010a**: The system MUST use "Application Plan" terminology consistently in farmer-facing mobile navigation and planning surfaces.
 - **FR-011**: The system MUST maintain usable behavior during degraded network conditions by preserving last-known user-visible state and showing sync uncertainty explicitly.
+- **FR-011a**: The system MUST keep the primary plan-save action reachable on common mobile viewport sizes regardless of selected-chemical list length.
+- **FR-011b**: The system MUST avoid presenting simultaneous competing field-action surfaces by default; field details flyout should be explicit/on-demand rather than auto-presented on selection.
 - **FR-012**: The system MUST define this feature scope as mobile-core stabilization only and exclude farmer web dashboard, service portal, full service-request/job domains, marketplace, billing, and admin expansion.
 
 ### Non-Goals

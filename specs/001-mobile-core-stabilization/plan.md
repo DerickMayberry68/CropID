@@ -115,6 +115,20 @@ test/
 - Add/expand automated tests and manual validation scripts for acceptance scenarios.
 - Verify measurable outcomes in the feature spec success criteria.
 
+## Implementation Alignment Updates (2026-03-08)
+
+- Completed map interaction simplification to reduce dual-surface confusion:
+  - field selection no longer auto-opens a bottom flyout
+  - field detail flyout is now explicit from top operations surface
+- Completed terminology alignment in implemented mobile surfaces to use "Application Plan".
+- Completed spray-plan persistence hardening:
+  - existing plans now reliably follow update path
+  - chemical associations are de-duplicated before persistence
+  - saved plans are editable and can transition to completed state
+- Completed mobile viewport hardening on planning screen:
+  - bottom-safe scroll spacing ensures primary save action remains reachable above shell navigation
+- Edge-function auth behavior hardened for secure invocation retry and clearer failure messages.
+
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**

@@ -27,11 +27,18 @@ class SprayPlanScreen extends ConsumerWidget {
     final saveState = ref.watch(sprayPlanSaveStateProvider);
     final lastSaveMessage = ref.watch(lastSaveUserMessageProvider);
     final myPlansAsync = ref.watch(mySprayPlansProvider);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    const shellNavReservedHeight = 128.0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Application Plan')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + shellNavReservedHeight + bottomInset,
+        ),
         children: [
           // ── Selected field info ────────────────────────────────────────
           if (selectedField != null) ...[

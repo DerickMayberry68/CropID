@@ -47,7 +47,12 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
 
   void _onFieldTap(Field field) {
     ref.read(selectedFieldProvider.notifier).state = field;
-    _showFieldBottomSheet(field);
+  }
+
+  void _openSelectedFieldDetails() {
+    final selectedField = ref.read(selectedFieldProvider);
+    if (selectedField == null) return;
+    _showFieldBottomSheet(selectedField);
   }
 
   void _showFieldBottomSheet(Field field) {
@@ -321,6 +326,7 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                           onPlanSpray: () => context.push(AppRoutes.sprayPlan),
                           onOpenServices: () =>
                               context.push(AppRoutes.cropDusters),
+                          onViewFieldDetails: _openSelectedFieldDetails,
                         )
                       else
                         _SelectFieldHintCard(mappedFieldCount: myFieldCount),
@@ -497,6 +503,7 @@ class _OperationsCard extends StatelessWidget {
   final int unreadAlerts;
   final VoidCallback? onPlanSpray;
   final VoidCallback onOpenServices;
+  final VoidCallback? onViewFieldDetails;
 
   const _OperationsCard({
     required this.selectedField,
@@ -505,6 +512,7 @@ class _OperationsCard extends StatelessWidget {
     required this.unreadAlerts,
     required this.onPlanSpray,
     required this.onOpenServices,
+    this.onViewFieldDetails,
   });
 
   @override
@@ -610,6 +618,17 @@ class _OperationsCard extends StatelessWidget {
               ),
             ],
           ),
+          if (selectedField != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: onViewFieldDetails,
+                icon: const Icon(Icons.edit_location_alt_outlined),
+                label: const Text('Field Details'),
+              ),
+            ),
+          ],
         ],
       ),
     );
