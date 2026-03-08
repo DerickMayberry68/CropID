@@ -75,17 +75,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Add widget test for notification inbox ordering and context rendering in `test/features/notifications/notifications_inbox_ordering_test.dart`
-- [ ] T022 [P] [US2] Add provider test for mark-as-read persistence behavior in `test/features/notifications/notification_mark_read_test.dart`
-- [ ] T023 [P] [US2] Add widget test for notification card reviewed/unreviewed visual state in `test/features/notifications/notification_card_state_test.dart`
+- [x] T021 [P] [US2] Add widget test for notification inbox ordering and context rendering in `test/features/notifications/notifications_inbox_ordering_test.dart`
+- [x] T022 [P] [US2] Add provider test for mark-as-read persistence behavior in `test/features/notifications/notification_mark_read_test.dart`
+- [x] T023 [P] [US2] Add widget test for notification card reviewed/unreviewed visual state in `test/features/notifications/notification_card_state_test.dart`
 
 ### Implementation for User Story 2
 
-- [ ] T024 [P] [US2] Harden notification data mapping and reviewed-state updates in `lib/features/notifications/data/notification_repository.dart`
-- [ ] T025 [US2] Implement deterministic dedupe and ordering for realtime/new alerts in `lib/features/notifications/providers/notification_provider.dart`
-- [ ] T026 [US2] Improve inbox loading, empty, and degraded-network states in `lib/features/notifications/presentation/screens/notifications_screen.dart`
-- [ ] T027 [US2] Align alert context labels and reviewed status affordances in `lib/features/notifications/presentation/widgets/notification_card.dart`
-- [ ] T028 [US2] Ensure plan-save alert handoff updates notification state coherently in `lib/features/spray_planning/providers/spray_plan_provider.dart`
+- [x] T024 [P] [US2] Harden notification data mapping and reviewed-state updates in `lib/features/notifications/data/notification_repository.dart`
+- [x] T025 [US2] Implement deterministic dedupe and ordering for realtime/new alerts in `lib/features/notifications/providers/notification_provider.dart`
+- [x] T026 [US2] Improve inbox loading, empty, and degraded-network states in `lib/features/notifications/presentation/screens/notifications_screen.dart`
+- [x] T027 [US2] Align alert context labels and reviewed status affordances in `lib/features/notifications/presentation/widgets/notification_card.dart`
+- [x] T028 [US2] Ensure plan-save alert handoff updates notification state coherently in `lib/features/spray_planning/providers/spray_plan_provider.dart`
 
 **Checkpoint**: US2 works independently with reliable alert behavior.
 

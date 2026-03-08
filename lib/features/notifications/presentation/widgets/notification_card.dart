@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../data/models/danger_notification.dart';
@@ -81,9 +82,9 @@ class NotificationCard extends ConsumerWidget {
                         ),
                       ),
                       _MetaBadge(
-                        label: notification.createdAt == null
-                            ? (notification.isRead ? 'Reviewed' : 'New')
-                            : _timeAgo(notification.createdAt!),
+                        label: notification.isRead
+                            ? AppConstants.alertStateReviewedLabel
+                            : AppConstants.alertStateUnreadLabel,
                         highlight: !notification.isRead,
                       ),
                     ],
@@ -123,9 +124,11 @@ class NotificationCard extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          notification.sprayScheduledDate != null
-                              ? 'Scheduled ${notification.sprayScheduledDate!.shortDate}'
-                              : 'Schedule not provided',
+                          notification.createdAt == null
+                              ? (notification.sprayScheduledDate != null
+                                  ? 'Scheduled ${notification.sprayScheduledDate!.shortDate}'
+                                  : 'Schedule not provided')
+                              : _timeAgo(notification.createdAt!),
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: AppTheme.textMuted,

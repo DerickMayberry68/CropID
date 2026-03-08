@@ -13,16 +13,24 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository(Supabase.instance.client);
 });
 
+enum NotificationSyncState {
+  idle,
+  loading,
+  ready,
+  error,
+}
+
 // ── Notification state notifier ───────────────────────────────────────────
 /// Loads notifications on init and subscribes to Realtime for live updates.
 /// New arrivals are prepended to state and trigger a local push notification.
 
 class NotificationNotifier extends StateNotifier<List<DangerNotification>> {
+  final Ref _ref;
   final NotificationRepository _repo;
   final String _farmerId;
   RealtimeChannel? _channel;
 
-  NotificationNotifier(this._repo, this._farmerId) : super([]) {
+  NotificationNotifier(this._ref, this._repo, this._farmerId) : super([]) {
     if (_farmerId.isNotEmpty) {
       _load();
       _subscribe();
@@ -30,9 +38,23 @@ class NotificationNotifier extends StateNotifier<List<DangerNotification>> {
   }
 
   Future<void> _load() async {
+    _ref.read(notificationSyncStateProvider.notifier).state =
+        NotificationSyncState.loading;
     final result = await _repo.getNotifications(_farmerId);
     if (mounted) {
-      result.fold((_) {}, (list) => state = _normalize(list));
+      result.fold(
+        (error) {
+          _ref.read(notificationSyncStateProvider.notifier).state =
+              NotificationSyncState.error;
+          _ref.read(notificationSyncMessageProvider.notifier).state = error;
+        },
+        (list) {
+          state = _normalize(list);
+          _ref.read(notificationSyncStateProvider.notifier).state =
+              NotificationSyncState.ready;
+          _ref.read(notificationSyncMessageProvider.notifier).state = null;
+        },
+      );
     }
   }
 
@@ -53,10 +75,25 @@ class NotificationNotifier extends StateNotifier<List<DangerNotification>> {
   }
 
   Future<void> markAsRead(String id) async {
-    await _repo.markAsRead(id);
+    final result = await _repo.markAsRead(id);
     if (mounted) {
-      state = _normalize(
-          state.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList());
+      result.fold(
+        (error) {
+          _ref.read(notificationSyncStateProvider.notifier).state =
+              NotificationSyncState.error;
+          _ref.read(notificationSyncMessageProvider.notifier).state = error;
+        },
+        (_) {
+          state = _normalize(
+            state
+                .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
+                .toList(),
+          );
+          _ref.read(notificationSyncStateProvider.notifier).state =
+              NotificationSyncState.ready;
+          _ref.read(notificationSyncMessageProvider.notifier).state = null;
+        },
+      );
     }
   }
 
@@ -99,8 +136,13 @@ final notificationNotifierProvider =
         (ref) {
   final user = ref.watch(currentUserProvider);
   final repo = ref.watch(notificationRepositoryProvider);
-  return NotificationNotifier(repo, user?.id ?? '');
+  return NotificationNotifier(ref, repo, user?.id ?? '');
 });
+
+final notificationSyncStateProvider =
+    StateProvider<NotificationSyncState>((_) => NotificationSyncState.idle);
+
+final notificationSyncMessageProvider = StateProvider<String?>((_) => null);
 
 // ── Unread count (for badge) ───────────────────────────────────────────────
 

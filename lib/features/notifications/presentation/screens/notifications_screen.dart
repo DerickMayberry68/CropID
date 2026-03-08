@@ -11,6 +11,8 @@ class NotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifications = ref.watch(notificationNotifierProvider);
+    final syncState = ref.watch(notificationSyncStateProvider);
+    final syncMessage = ref.watch(notificationSyncMessageProvider);
     final unread =
         notifications.where((notification) => !notification.isRead).toList();
     final read =
@@ -38,6 +40,19 @@ class NotificationsScreen extends ConsumerWidget {
               totalCount: notifications.length,
             ),
             const SizedBox(height: 18),
+            if (syncState == NotificationSyncState.loading)
+              const _SyncStateCard(
+                icon: Icons.sync,
+                label: 'Syncing latest alerts...',
+              ),
+            if (syncState == NotificationSyncState.error)
+              _SyncStateCard(
+                icon: Icons.warning_amber_rounded,
+                label: syncMessage ?? 'Unable to sync alerts right now.',
+              ),
+            if (syncState == NotificationSyncState.loading ||
+                syncState == NotificationSyncState.error)
+              const SizedBox(height: 14),
             if (notifications.isEmpty)
               const _EmptyAlertsCard()
             else ...[
@@ -66,6 +81,38 @@ class NotificationsScreen extends ConsumerWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SyncStateCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _SyncStateCard({
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: AppTheme.panelDecoration(),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.accentAmber),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppTheme.textMuted,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../data/models/chemical.dart';
 import '../data/models/spray_plan.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../farm_map/providers/farm_map_provider.dart';
+import '../../notifications/providers/notification_provider.dart';
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../shared/services/supabase_service.dart';
 import 'spray_plan_save_state.dart';
@@ -137,6 +138,8 @@ class SprayPlanNotifier extends StateNotifier<AsyncValue<SprayPlan?>> {
             print('[EdgeFn] send_notification error: $e');
             // Edge function failure is non-fatal — plan is already saved.
             // Notification failure will be surfaced in Phase 4 logging.
+          } finally {
+            await _ref.read(notificationNotifierProvider.notifier).refresh();
           }
         }
       },

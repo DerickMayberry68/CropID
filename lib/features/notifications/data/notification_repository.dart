@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dartz/dartz.dart';
 
 import '../../../core/constants/supabase_constants.dart';
+import '../../../shared/services/supabase_service.dart';
 import 'models/danger_notification.dart';
 
 class NotificationRepository {
@@ -16,10 +17,13 @@ class NotificationRepository {
           .select()
           .eq('recipient_farmer_id', farmerId)
           .order('created_at', ascending: false);
-      return Right(
-          (data as List).map((e) => DangerNotification.fromJson(e)).toList());
+      final mapped = (data as List)
+          .whereType<Map<String, dynamic>>()
+          .map(DangerNotification.fromJson)
+          .toList();
+      return Right(mapped);
     } catch (e) {
-      return Left(e.toString());
+      return Left(SupabaseService.toUserMessage(e));
     }
   }
 
@@ -27,11 +31,10 @@ class NotificationRepository {
     try {
       await _client
           .from(SupabaseConstants.dangerNotificationsTable)
-          .update({'is_read': true})
-          .eq('id', notificationId);
+          .update({'is_read': true}).eq('id', notificationId);
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(SupabaseService.toUserMessage(e));
     }
   }
 
@@ -54,7 +57,9 @@ class NotificationRepository {
           callback: (payload) {
             try {
               onNew(DangerNotification.fromJson(payload.newRecord));
-            } catch (_) {}
+            } catch (_) {
+              // Ignore malformed realtime payloads; next refresh repairs state.
+            }
           },
         )
         .subscribe();
