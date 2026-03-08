@@ -222,12 +222,24 @@ class SprayPlanScreen extends ConsumerWidget {
                   child: Text('No saved plans found yet.'),
                 );
               }
+              final orderedPlans = [...plans]..sort((a, b) {
+                  final aCreated = a.createdAt;
+                  final bCreated = b.createdAt;
+                  if (aCreated == null && bCreated == null) {
+                    return b.id.compareTo(a.id);
+                  }
+                  if (aCreated == null) return 1;
+                  if (bCreated == null) return -1;
+                  final byCreated = bCreated.compareTo(aCreated);
+                  if (byCreated != 0) return byCreated;
+                  return b.id.compareTo(a.id);
+                });
               return ListView.separated(
                 shrinkWrap: true,
-                itemCount: plans.length,
+                itemCount: orderedPlans.length,
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (_, index) {
-                  final plan = plans[index];
+                  final plan = orderedPlans[index];
                   return ListTile(
                     leading: const Icon(Icons.description_outlined),
                     title: Text(plan.fieldName ?? 'Unnamed field'),
