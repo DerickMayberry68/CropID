@@ -130,8 +130,12 @@ class ChemicalRepository {
       final saved = SprayPlan.fromJson(data);
 
       // Insert chemicals into junction table if any selected
-      if (plan.chemicals.isNotEmpty) {
-        final junctionRows = plan.chemicals
+      final uniqueChemicals = <String, Chemical>{
+        for (final chemical in plan.chemicals) chemical.id: chemical,
+      }.values.toList();
+
+      if (uniqueChemicals.isNotEmpty) {
+        final junctionRows = uniqueChemicals
             .map((c) => {
                   'spray_plan_id': saved.id,
                   'chemical_id': c.id,
@@ -142,7 +146,7 @@ class ChemicalRepository {
             .insert(junctionRows);
       }
 
-      return Right(saved.copyWith(chemicals: plan.chemicals));
+      return Right(saved.copyWith(chemicals: uniqueChemicals));
     } catch (e) {
       return Left(SupabaseService.toUserMessage(e));
     }
@@ -167,8 +171,12 @@ class ChemicalRepository {
           .delete()
           .eq('spray_plan_id', plan.id);
 
-      if (plan.chemicals.isNotEmpty) {
-        final junctionRows = plan.chemicals
+      final uniqueChemicals = <String, Chemical>{
+        for (final chemical in plan.chemicals) chemical.id: chemical,
+      }.values.toList();
+
+      if (uniqueChemicals.isNotEmpty) {
+        final junctionRows = uniqueChemicals
             .map((c) => {
                   'spray_plan_id': plan.id,
                   'chemical_id': c.id,
@@ -180,7 +188,7 @@ class ChemicalRepository {
       }
 
       final updated = SprayPlan.fromJson(data);
-      return Right(updated.copyWith(chemicals: plan.chemicals));
+      return Right(updated.copyWith(chemicals: uniqueChemicals));
     } catch (e) {
       return Left(SupabaseService.toUserMessage(e));
     }

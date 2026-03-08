@@ -38,9 +38,9 @@ class SprayPlan with _$SprayPlan {
 }
 
 extension SprayPlanMetadataExt on SprayPlan {
-  /// Treat plan as persisted when it has an ID and server timestamp.
-  bool get isPersisted =>
-      id.isNotEmpty && (createdAt != null || scheduledDate != null);
+  /// Treat plan as persisted when it has a non-empty database ID.
+  /// Some legacy rows may have null timestamps but are still persisted.
+  bool get isPersisted => id.isNotEmpty;
 
   /// Stable key used for deterministic sorting in UI lists.
   String get stableKey => '$id-${createdAt?.millisecondsSinceEpoch ?? 0}';
