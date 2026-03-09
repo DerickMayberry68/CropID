@@ -5,11 +5,13 @@ import '../../data/models/crop_duster_service.dart';
 class ServiceCard extends StatelessWidget {
   final CropDusterService service;
   final VoidCallback onContact;
+  final String? contextSummary;
 
   const ServiceCard({
     super.key,
     required this.service,
     required this.onContact,
+    this.contextSummary,
   });
 
   @override
@@ -39,6 +41,13 @@ class ServiceCard extends StatelessWidget {
             if (service.serviceRadiusMiles != null)
               Text('Serves up to ${service.serviceRadiusMiles} miles',
                   style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            if (contextSummary != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                contextSummary!,
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               children: [

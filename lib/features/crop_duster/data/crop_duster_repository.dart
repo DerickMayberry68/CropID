@@ -55,7 +55,23 @@ class CropDusterRepository {
     double? lng,
     bool sendSms = true,
     bool sendEmail = false,
+    String? servicePhone,
+    String? serviceEmail,
   }) async {
+    final validationError = _validateContactPayload(
+      serviceId: serviceId,
+      farmerId: farmerId,
+      fieldName: fieldName,
+      message: message,
+      sendSms: sendSms,
+      sendEmail: sendEmail,
+      servicePhone: servicePhone,
+      serviceEmail: serviceEmail,
+    );
+    if (validationError != null) {
+      return Left(validationError);
+    }
+
     try {
       final response = await SupabaseService.invokeAuthedFunction(
         SupabaseConstants.contactCropDusterFunction,
@@ -91,5 +107,31 @@ class CropDusterRepository {
     } catch (e) {
       return Left(e.toString());
     }
+  }
+
+  String? _validateContactPayload({
+    required String serviceId,
+    required String farmerId,
+    required String fieldName,
+    required String message,
+    required bool sendSms,
+    required bool sendEmail,
+    required String? servicePhone,
+    required String? serviceEmail,
+  }) {
+    if (serviceId.trim().isEmpty) return 'Missing service context.';
+    if (farmerId.trim().isEmpty) return 'Missing farmer context.';
+    if (fieldName.trim().isEmpty) return 'Missing field context.';
+    if (message.trim().isEmpty) return 'Missing contact message.';
+    if (!sendSms && !sendEmail) {
+      return 'Choose at least one contact method.';
+    }
+    if (sendSms && (servicePhone ?? '').trim().isEmpty) {
+      return 'Selected service cannot receive SMS.';
+    }
+    if (sendEmail && (serviceEmail ?? '').trim().isEmpty) {
+      return 'Selected service cannot receive email.';
+    }
+    return null;
   }
 }

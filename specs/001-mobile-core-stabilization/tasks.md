@@ -99,16 +99,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T029 [P] [US3] Add widget test for saved-plan-to-contact payload prefill in `test/features/crop_duster/contact_payload_prefill_test.dart`
-- [ ] T030 [P] [US3] Add widget test for unavailable contact channel fallback states in `test/features/crop_duster/contact_channel_fallback_test.dart`
+- [x] T029 [P] [US3] Add widget test for saved-plan-to-contact payload prefill in `test/features/crop_duster/contact_payload_prefill_test.dart`
+- [x] T030 [P] [US3] Add widget test for unavailable contact channel fallback states in `test/features/crop_duster/contact_channel_fallback_test.dart`
 
 ### Implementation for User Story 3
 
-- [ ] T031 [P] [US3] Add contact payload mapper from saved-plan snapshot in `lib/features/crop_duster/providers/crop_duster_provider.dart`
-- [ ] T032 [US3] Use saved-plan-derived payload consistently in message preview and send actions in `lib/features/crop_duster/presentation/screens/contact_screen.dart`
-- [ ] T033 [US3] Add service availability and fallback messaging before contact initiation in `lib/features/crop_duster/presentation/screens/crop_duster_screen.dart`
-- [ ] T034 [US3] Align service-card summary fields with contact payload expectations in `lib/features/crop_duster/presentation/widgets/service_card.dart`
-- [ ] T035 [US3] Validate required contact payload fields before service invocation in `lib/features/crop_duster/data/crop_duster_repository.dart`
+- [x] T031 [P] [US3] Add contact payload mapper from saved-plan snapshot in `lib/features/crop_duster/providers/crop_duster_provider.dart`
+- [x] T032 [US3] Use saved-plan-derived payload consistently in message preview and send actions in `lib/features/crop_duster/presentation/screens/contact_screen.dart`
+- [x] T033 [US3] Add service availability and fallback messaging before contact initiation in `lib/features/crop_duster/presentation/screens/crop_duster_screen.dart`
+- [x] T034 [US3] Align service-card summary fields with contact payload expectations in `lib/features/crop_duster/presentation/widgets/service_card.dart`
+- [x] T035 [US3] Validate required contact payload fields before service invocation in `lib/features/crop_duster/data/crop_duster_repository.dart`
 
 **Checkpoint**: US3 is independently functional with coherent contact handoff.
 
