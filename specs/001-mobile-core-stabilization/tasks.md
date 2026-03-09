@@ -122,10 +122,10 @@
 - [x] T037 Harden Application Plan viewport behavior so primary save action remains scroll-reachable above shell navigation in `lib/features/spray_planning/presentation/screens/spray_plan_screen.dart`
 - [x] T038 [P] Prevent duplicate save/update failures by correcting persisted-plan detection and de-duplicating chemical join writes in `lib/features/spray_planning/data/models/spray_plan.dart` and `lib/features/spray_planning/data/chemical_repository.dart`
 - [x] T039 Record post-implementation spec/plan/task alignment updates in `specs/001-mobile-core-stabilization/spec.md`, `specs/001-mobile-core-stabilization/plan.md`, and `specs/001-mobile-core-stabilization/tasks.md`
-- [ ] T040 [P] Update quickstart validation flow to match implemented behavior in `specs/001-mobile-core-stabilization/quickstart.md`
-- [ ] T041 Record executed validation evidence and outcomes in `specs/001-mobile-core-stabilization/research.md`
-- [ ] T042 [P] Add regression smoke coverage for root app rendering path in `test/widget_test.dart`
-- [ ] T043 Update feature validation checklist with pass/fail results in `specs/001-mobile-core-stabilization/checklists/validation.md`
+- [x] T040 [P] Update quickstart validation flow to match implemented behavior in `specs/001-mobile-core-stabilization/quickstart.md`
+- [x] T041 Record executed validation evidence and outcomes in `specs/001-mobile-core-stabilization/research.md`
+- [x] T042 [P] Add regression smoke coverage for root app rendering path in `test/widget_test.dart`
+- [x] T043 Update feature validation checklist with pass/fail results in `specs/001-mobile-core-stabilization/checklists/validation.md`
 
 ---
 

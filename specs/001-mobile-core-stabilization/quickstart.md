@@ -56,3 +56,23 @@ Expected:
 
 - All scenarios pass without contradictory UI state
 - Edge cases from spec are verified at least once
+
+## Execution Notes (2026-03-08)
+
+- Scenario A passed in local manual validation:
+  - saved plans now list newest first
+  - saved plan can be reopened for edit and marked completed
+  - duplicate save error (`record already exists`) fixed by update-path and chemical de-duplication hardening
+- Scenario B passed in local manual validation:
+  - failed save surfaces explicit `Save failed` state with actionable retry button
+- Scenario C passed in local manual validation:
+  - alerts remain ordered/coherent and reviewed state persists through provider normalization
+- Scenario D passed with automated + manual validation:
+  - contact preview uses saved-plan payload (field, chemicals, danger count)
+  - unavailable contact channels now show explicit fallback messaging before contact action
+
+## Automated Checks Run
+
+- `flutter test test/features/crop_duster/contact_payload_prefill_test.dart test/features/crop_duster/contact_channel_fallback_test.dart`
+- `flutter test test/widget_test.dart`
+- `dart analyze lib/features/crop_duster/providers/crop_duster_provider.dart lib/features/crop_duster/presentation/screens/contact_screen.dart lib/features/crop_duster/presentation/screens/crop_duster_screen.dart lib/features/crop_duster/presentation/widgets/service_card.dart lib/features/crop_duster/data/crop_duster_repository.dart`

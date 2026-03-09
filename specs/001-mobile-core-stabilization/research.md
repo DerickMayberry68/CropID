@@ -49,3 +49,29 @@ Identify current reliability and clarity gaps in the farmer mobile core workflow
 - Canonical state models agreed for save and alert flows.
 - Failure-mode behaviors defined for unstable network/save errors.
 - Contact payload minimum required fields finalized.
+
+## Validation Evidence (2026-03-08)
+
+1. Save reliability hardening evidence
+- `SprayPlan.isPersisted` updated to treat non-empty ID as persisted, preventing accidental insert path on existing plans.
+- Chemical join writes now de-duplicate chemical IDs before insert/update writes.
+- User-visible result: existing plans can be updated without duplicate-record failures.
+
+2. Field/map workflow coherence evidence
+- Field selection no longer auto-opens details modal.
+- Field details moved to explicit on-demand action from active-field card.
+- User-visible result: single primary surface by default on map screen.
+
+3. Application Plan usability evidence
+- Planning list now reserves bottom-safe scroll space to keep save CTA reachable above shell navigation.
+- Saved plan list ordering now explicitly newest-first at render time.
+- User-visible result: primary action remains reachable and recent work appears first.
+
+4. Contact handoff evidence (US3)
+- Added explicit saved-plan-to-contact payload mapper and provider.
+- Contact send flow now validates required context and channel availability before function invocation.
+- Service list now blocks unavailable-channel contact attempts with clear fallback notice.
+
+5. Test execution evidence
+- `flutter test test/features/crop_duster/contact_payload_prefill_test.dart test/features/crop_duster/contact_channel_fallback_test.dart` => PASS.
+- `dart analyze` on changed US3 files => PASS (non-blocking lint info only).
