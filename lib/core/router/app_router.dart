@@ -13,6 +13,7 @@ import '../../features/spray_planning/presentation/screens/chemical_selector_scr
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/crop_duster/presentation/screens/crop_duster_screen.dart';
 import '../../features/crop_duster/presentation/screens/contact_screen.dart';
+import '../../features/farmer_web/presentation/screens/farmer_dashboard_screen.dart';
 import '../shell/main_shell.dart';
 
 /// Bridges a [Stream] to [ChangeNotifier] so GoRouter re-evaluates
@@ -35,6 +36,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/';           // → FarmMapScreen (shell tab 0)
+  static const String farmerDashboard = '/dashboard';
   static const String sprayPlan = '/spray-plan';
   static const String chemicalSelector = '/spray-plan/chemicals';
   static const String notifications = '/notifications';
@@ -71,6 +73,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.register,
         builder: (_, __) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.farmerDashboard,
+        builder: (_, __) => const FarmerDashboardScreen(),
       ),
 
       // ── Main shell (bottom nav) ────────────────────────────────────────
