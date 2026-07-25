@@ -1,8 +1,8 @@
--- ============================================================
--- CropID — Seed Data: Chemicals and Common Crops
+﻿-- ============================================================
+-- CropID â€” Seed Data: Chemicals and Common Crops
 -- ============================================================
 
--- ── Common crops ─────────────────────────────────────────────
+-- â”€â”€ Common crops â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 INSERT INTO crops (id, name, scientific_name, tags) VALUES
   ('corn',        'Corn',             'Zea mays',             ARRAY['grain','broadleaf']),
   ('soybeans',    'Soybeans',         'Glycine max',          ARRAY['legume','broadleaf']),
@@ -16,7 +16,7 @@ INSERT INTO crops (id, name, scientific_name, tags) VALUES
   ('sugar_beet',  'Sugar Beet',       'Beta vulgaris',        ARRAY['root','sugar'])
 ON CONFLICT (id) DO NOTHING;
 
--- ── Common herbicides / insecticides ─────────────────────────
+-- â”€â”€ Common herbicides / insecticides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 INSERT INTO chemicals (id, name, common_name, toxicity_level,
     dangerous_to_crop_ids, dangerous_to_crop_names, notes) VALUES
 
@@ -58,7 +58,7 @@ INSERT INTO chemicals (id, name, common_name, toxicity_level,
   ('imidacloprid', 'Imidacloprid', 'Admire Pro', 'moderate',
     ARRAY['sunflower','canola','alfalfa'],
     ARRAY['Sunflower','Canola','Alfalfa'],
-    'Neonicotinoid. High toxicity to bees — avoid during bloom.'),
+    'Neonicotinoid. High toxicity to bees â€” avoid during bloom.'),
 
   ('pendimethalin', 'Pendimethalin', 'Prowl', 'low',
     ARRAY['soybeans','wheat'],
@@ -72,12 +72,3 @@ INSERT INTO chemicals (id, name, common_name, toxicity_level,
 
 ON CONFLICT (id) DO NOTHING;
 
--- ── Sample crop duster services ─────────────────────────────
-INSERT INTO crop_duster_services (name, phone, email, address, state, service_radius_miles, is_active)
-VALUES
-  ('Midwest AirSpray LLC',   '555-0101', 'info@midwestairspray.example',  '100 Airfield Rd, Springfield, IL',  'IL', 150, true),
-  ('Central Plains Aerial',  '555-0202', 'fly@centralplains.example',     '45 Crop Way, Wichita, KS',          'KS', 200, true),
-  ('Delta AgAir Services',   '555-0303', NULL,                             '77 Hangar Ln, Memphis, TN',         'TN', 120, true),
-  ('High Plains Ag Aviation','555-0404', 'contact@highplains.example',    '12 Skyway Blvd, Lubbock, TX',       'TX', 175, true),
-  ('Corn Belt Air Ag',        '555-0505', 'info@cornbeltair.example',      '8 Spray Lane, Ames, IA',            'IA', 100, true)
-ON CONFLICT DO NOTHING;
