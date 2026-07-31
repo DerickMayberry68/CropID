@@ -25,30 +25,93 @@ Examples
 import argparse
 import json
 import os
+import ssl
 import subprocess
 import sys
+import time
 import urllib.parse
+import urllib.request
 
 DEFAULT_SERVICE = "Crop_Sequence_Boundary_2022"   # CSB1522 layer (2015-2022)
 BASE = "https://pdi.scinet.usda.gov/hosting/rest/services/Hosted/{service}/FeatureServer/0/query"
 PAGE = 2000            # server maxRecordCount
 COORD_PRECISION = 6    # ~0.1 m
-COLS = "(csb_id, state, county_fips, boundary, boundary_points, acres, crop_year)"
+COLS = ("(csb_id, state, county_fips, boundary, boundary_points, acres, "
+        "crop_year, predicted_crop_id)")
+
+# USDA Cropland Data Layer class code -> crops.id. The CSB `r22` attribute is
+# the 2022 CDL class observed for the field. Codes absent from this map (open
+# water, developed land, forest, wetlands, and crops CropID does not track) are
+# left NULL rather than guessed at.
+CDL_TO_CROP = {
+    1: "corn",          2: "cotton",        3: "rice",          4: "sorghum",
+    5: "soybeans",      6: "sunflower",     10: "peanuts",      21: "barley",
+    22: "wheat",        23: "wheat",        24: "wheat",        27: "rye",
+    28: "oats",         31: "canola",       36: "alfalfa",      37: "hay_other",
+    41: "sugar_beet",   42: "dry_beans",    43: "potato",       46: "sweet_potato",
+    48: "watermelon",   54: "tomatoes",     61: "fallow",       67: "peaches",
+    69: "grapes",       74: "pecans",       176: "pasture",
+    # Double-crop classes report the dominant cash crop for drift purposes.
+    26: "wheat",        225: "corn",        226: "corn",        236: "wheat",
+    237: "corn",        238: "cotton",      239: "soybeans",    240: "soybeans",
+    241: "corn",        254: "soybeans",
+}
 
 
 # ── USDA FeatureServer paging ────────────────────────────────────────────────
-def fetch(url):
-    out = subprocess.run(["curl", "-s", "--max-time", "120", url],
-                         capture_output=True, text=True)
-    if out.returncode != 0:
-        raise RuntimeError(f"curl failed ({out.returncode}): {out.stderr[:200]}")
-    return json.loads(out.stdout)
+def _unverified_context():
+    """TLS context that encrypts but does not verify the certificate chain.
+
+    Corporate proxies and antivirus TLS interception present a substituted CA
+    that Python rejects even where the OS accepts it. CSB is public read-only
+    reference data, so falling back to an unverified fetch is an acceptable
+    trade for being able to import at all.
+    """
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
+def fetch(url, retries=3):
+    """GET JSON over whichever transport this machine's TLS setup allows.
+
+    Tries verified urllib, then verified curl, then the unverified variants.
+    The USDA endpoint also drops connections under sustained load, so each
+    round is retried with a backoff before giving up.
+    """
+    attempts = (
+        ("urllib", True), ("curl", True),
+        ("urllib", False), ("curl", False),
+    )
+    last_error = None
+    for round_index in range(retries):
+        for transport, verify in attempts:
+            try:
+                if transport == "urllib":
+                    req = urllib.request.Request(
+                        url, headers={"User-Agent": "CropID-CSB-Import/1.0"})
+                    ctx = None if verify else _unverified_context()
+                    with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
+                        return json.loads(resp.read().decode("utf-8"))
+                cmd = ["curl", "-s", "--max-time", "120"]
+                if not verify:
+                    cmd.append("-k")
+                out = subprocess.run(cmd + [url], capture_output=True, text=True)
+                if out.returncode != 0:
+                    raise RuntimeError(f"curl exit {out.returncode}")
+                return json.loads(out.stdout)
+            except Exception as exc:  # noqa: BLE001 - fall through to next transport
+                last_error = exc
+        if round_index < retries - 1:
+            time.sleep(2 * (round_index + 1))
+    raise RuntimeError(f"Could not fetch USDA data: {last_error}")
 
 
 def query_url(service, where, offset, count):
     params = {
         "where": where,
-        "outFields": "csbid,csbacres,statefips,cntyfips,csbyears",
+        "outFields": "csbid,csbacres,statefips,cntyfips,csbyears,r22",
         "outSR": "4326", "f": "geojson", "returnGeometry": "true",
         "orderByFields": "csbid", "resultOffset": str(offset),
         "resultRecordCount": str(count),
@@ -115,6 +178,7 @@ def iter_rows(service, where, limit):
                 "state": props.get("statefips"),
                 "county_fips": props.get("cntyfips"),
                 "acres": props.get("csbacres"),
+                "crop_id": CDL_TO_CROP.get(props.get("r22")),
                 "ewkt": to_ewkt(ring),
                 "points": json.dumps(to_boundary_points(ring), separators=(",", ":")),
             }
@@ -125,7 +189,7 @@ def iter_rows(service, where, limit):
 
 
 # ── direct load into Supabase (pg8000) ───────────────────────────────────────
-def load_direct(rows, db_url, batch_size=1000):
+def load_direct(rows, db_url, batch_size=1000, refresh=False):
     try:
         import pg8000.dbapi as pg
     except ImportError:
@@ -148,7 +212,14 @@ def load_direct(rows, db_url, batch_size=1000):
         ssl_context=ctx,
     )
     cur = conn.cursor()
-    row_sql = "(%s,%s,%s,extensions.ST_GeogFromText(%s),%s::jsonb,%s,2022)"
+    row_sql = "(%s,%s,%s,extensions.ST_GeogFromText(%s),%s::jsonb,%s,2022,%s)"
+    # Plain imports skip rows already present; --refresh-crops backfills the
+    # predicted crop onto boundaries imported before crop codes were fetched.
+    conflict = (
+        "ON CONFLICT (csb_id) DO UPDATE SET predicted_crop_id = "
+        "EXCLUDED.predicted_crop_id"
+        if refresh else "ON CONFLICT (csb_id) DO NOTHING"
+    )
     total, batch = 0, []
 
     def flush():
@@ -157,11 +228,12 @@ def load_direct(rows, db_url, batch_size=1000):
             return
         sql = (f"INSERT INTO csb_fields {COLS} VALUES "
                + ",".join([row_sql] * len(batch))
-               + " ON CONFLICT (csb_id) DO NOTHING")
+               + " " + conflict)
         params = []
         for x in batch:
             params += [x["csb_id"], x["state"], x["county_fips"], x["ewkt"],
-                       x["points"], (None if x["acres"] is None else float(x["acres"]))]
+                       x["points"], (None if x["acres"] is None else float(x["acres"])),
+                       x["crop_id"]]
         cur.execute(sql, params)
         conn.commit()
         total += len(batch)
@@ -194,10 +266,12 @@ def write_file(path, subset, chunk):
             for x in subset[i:i + chunk]:
                 acres = "NULL" if x["acres"] is None else f"{float(x['acres']):.4f}"
                 cty = "NULL" if x["county_fips"] is None else sql_literal(x["county_fips"])
+                crop = ("NULL" if x["crop_id"] is None
+                        else sql_literal(x["crop_id"]))
                 vals.append(
                     f"  ({sql_literal(x['csb_id'])}, {sql_literal(x['state'])}, {cty}, "
                     f"extensions.ST_GeogFromText({sql_literal(x['ewkt'])}), "
-                    f"{sql_literal(x['points'])}::jsonb, {acres}, 2022)")
+                    f"{sql_literal(x['points'])}::jsonb, {acres}, 2022, {crop})")
             fh.write(",\n".join(vals) + "\nON CONFLICT (csb_id) DO NOTHING;\n\n")
 
 
@@ -209,6 +283,9 @@ def main():
     ap.add_argument("--limit", type=int, default=None, help="Max features")
     ap.add_argument("--load", action="store_true",
                     help="Load straight into Supabase via pg8000 (uses --db-url/SUPABASE_DB_URL)")
+    ap.add_argument("--refresh-crops", action="store_true",
+                    help="With --load: update predicted_crop_id on boundaries "
+                         "that are already imported")
     ap.add_argument("--db-url", default=os.environ.get("SUPABASE_DB_URL"),
                     help="Postgres URI (defaults to $SUPABASE_DB_URL)")
     ap.add_argument("--out", help="Output .sql path (SQL-file mode)")
@@ -225,7 +302,7 @@ def main():
     if args.load:
         if not args.db_url:
             sys.exit("Set --db-url or $SUPABASE_DB_URL (session pooler URI from the dashboard).")
-        load_direct(rows, args.db_url)
+        load_direct(rows, args.db_url, refresh=args.refresh_crops)
         return
 
     if not args.out:

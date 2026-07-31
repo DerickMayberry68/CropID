@@ -73,6 +73,56 @@ final adjacentFieldsProvider =
   return result.fold((_) => [], (fields) => fields);
 });
 
+// ── Surrounding fields (neighborhood context) ─────────────────────────────
+
+/// Centroid of the selected field, or null when nothing usable is selected.
+LatLng? _selectedCentroid(Ref ref) {
+  final selected = ref.watch(selectedFieldProvider);
+  if (selected == null) return null;
+  final boundary = selected.latLngBoundary;
+  return boundary.length >= 3 ? boundary.centroid : null;
+}
+
+/// Claimed neighboring fields around the selected field, for map context.
+///
+/// Wider than [adjacentFieldsProvider], which stays tuned to drift-risk
+/// adjacency. Respects each owner's visibility setting: private fields are
+/// never returned, so anonymous neighbors show their crop but not their name.
+final neighborFieldsProvider =
+    FutureProvider.autoDispose<List<Field>>((ref) async {
+  final centroid = _selectedCentroid(ref);
+  if (centroid == null) return [];
+
+  final user = ref.watch(currentUserProvider);
+  final repo = ref.watch(fieldRepositoryProvider);
+  final result = await repo.getAdjacentFields(
+    lat: centroid.latitude,
+    lng: centroid.longitude,
+    radiusMeters: AppConstants.neighborhoodRadiusMeters,
+    excludeFarmerId: user?.id,
+  );
+  return result.fold((_) => [], (fields) => fields);
+});
+
+/// Unclaimed USDA boundaries around the selected field.
+///
+/// These are real fields nobody has claimed in CropID yet — shown so the
+/// farmer sees the whole neighborhood, not just the parts already on the
+/// platform. Their owners cannot be notified of spray plans.
+final surroundingCsbFieldsProvider =
+    FutureProvider.autoDispose<List<CsbField>>((ref) async {
+  final centroid = _selectedCentroid(ref);
+  if (centroid == null) return [];
+
+  final repo = ref.watch(fieldRepositoryProvider);
+  final result = await repo.getCsbFieldsNear(
+    lat: centroid.latitude,
+    lng: centroid.longitude,
+    radiusMeters: AppConstants.neighborhoodRadiusMeters,
+  );
+  return result.fold((_) => [], (fields) => fields);
+});
+
 // ── Map center ────────────────────────────────────────────────────────────
 
 final mapCenterProvider = StateProvider<LatLng>(

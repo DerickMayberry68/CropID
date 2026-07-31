@@ -5,6 +5,10 @@ import '../../../../core/theme/app_theme.dart';
 import '../../data/models/csb_field.dart';
 import '../../providers/farm_map_provider.dart';
 
+/// Height of the shell's bottom navigation bar, which is drawn over modal
+/// sheets. The sheet lifts clear of it so its actions stay tappable.
+const double _navBarClearance = 76;
+
 /// Confirmation sheet for claiming a USDA boundary as an owned field.
 ///
 /// Lets the farmer name the field before claiming; the boundary itself comes
@@ -64,18 +68,24 @@ class _ClaimFieldSheetState extends ConsumerState<ClaimFieldSheet> {
   Widget build(BuildContext context) {
     final csb = widget.csbField;
 
+    // Keep the sheet clear of the keyboard, the home indicator, and the
+    // shell's bottom navigation so the claim action is always reachable.
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final maxSheetHeight = MediaQuery.sizeOf(context).height * 0.85;
+
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
-        margin: const EdgeInsets.all(12),
+        constraints: BoxConstraints(maxHeight: maxSheetHeight),
+        margin: EdgeInsets.fromLTRB(12, 12, 12, 12 + safeBottom + _navBarClearance),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
         decoration: AppTheme.panelDecoration(emphasized: true),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Center(
               child: Container(
                 width: 44,
@@ -192,9 +202,10 @@ class _ClaimFieldSheetState extends ConsumerState<ClaimFieldSheet> {
                     label: Text(_claiming ? 'Claiming...' : 'Claim Field'),
                   ),
                 ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

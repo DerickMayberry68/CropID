@@ -79,4 +79,16 @@ extension CsbFieldExt on CsbField {
   /// Short human label, e.g. "12.4 ac".
   String get acresLabel =>
       acres == null ? 'Acreage unknown' : '${acres!.toStringAsFixed(1)} ac';
+
+  /// Map label for an unclaimed boundary: the crop USDA last observed here,
+  /// or a plain marker when no crop history was imported.
+  String get cropLabel {
+    final id = predictedCropId;
+    if (id == null || id.trim().isEmpty) return 'Unclaimed';
+    final words = id
+        .split('_')
+        .where((w) => w.isNotEmpty)
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}');
+    return '${words.join(' ')} (USDA)';
+  }
 }
