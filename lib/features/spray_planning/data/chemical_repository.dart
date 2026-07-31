@@ -118,7 +118,8 @@ class ChemicalRepository {
       //   - 'id' when empty lets the DB auto-generate a UUID
       final json = plan.toJson()
         ..remove('chemicals')
-        ..remove('current_crop_name');
+        ..remove('current_crop_name')
+        ..remove('created_at');
       if ((json['id'] as String?)?.isEmpty ?? true) json.remove('id');
 
       final data = await _client

@@ -1,13 +1,12 @@
 /// Supabase project credentials.
-/// TODO: Replace with your actual Supabase project URL and anon key.
-/// These are safe to commit (anon key is public-facing), but for
+/// The publishable key is safe to commit because it is public-facing, but for
 /// production consider using --dart-define or flutter_dotenv.
 class SupabaseConstants {
   SupabaseConstants._();
 
-  static const String supabaseUrl = 'https://vwyeasxwrwejlxyydjnf.supabase.co';
-  static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3eWVhc3h3cndlamx4eXlkam5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NzUzNjcsImV4cCI6MjA4ODM1MTM2N30.RDT4e1bWChAMYLz8GK83D_OoWIWhRkgrNo19GYVwCxQ';
+  static const String supabaseUrl = 'https://yffrxorputpzlumsgxlv.supabase.co';
+  static const String supabasePublishableKey =
+      'sb_publishable__LEh6F6qwZbIxdYJ59ZiGg_IzPsV7lp';
 
   // ── Table names ──────────────────────────────────────────────────────────
   static const String profilesTable = 'profiles';

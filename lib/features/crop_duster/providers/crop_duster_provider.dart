@@ -57,13 +57,19 @@ final cropDusterRepositoryProvider = Provider<CropDusterRepository>((ref) {
   return CropDusterRepository(Supabase.instance.client);
 });
 
+final selectedSprayingServiceTypeProvider =
+    StateProvider<SprayingServiceType?>((ref) => null);
+
 final nearbyServicesProvider =
     FutureProvider.autoDispose<List<CropDusterService>>((ref) async {
   final center = ref.watch(mapCenterProvider);
-  final result = await ref.watch(cropDusterRepositoryProvider).getNearbyServices(
-        lat: center.latitude,
-        lng: center.longitude,
-      );
+  final serviceType = ref.watch(selectedSprayingServiceTypeProvider);
+  final result =
+      await ref.watch(cropDusterRepositoryProvider).getNearbyServices(
+            lat: center.latitude,
+            lng: center.longitude,
+            serviceType: serviceType,
+          );
   return result.fold((_) => [], (s) => s);
 });
 
@@ -72,15 +78,17 @@ final cropDusterSearchQueryProvider = StateProvider<String>((ref) => '');
 final cropDusterSearchResultsProvider =
     FutureProvider.autoDispose<List<CropDusterService>>((ref) async {
   final query = ref.watch(cropDusterSearchQueryProvider);
+  final serviceType = ref.watch(selectedSprayingServiceTypeProvider);
   if (query.isEmpty) return ref.watch(nearbyServicesProvider).value ?? [];
 
   final result = await ref
       .watch(cropDusterRepositoryProvider)
-      .searchServices(query);
+      .searchServices(query, serviceType: serviceType);
   return result.fold((_) => [], (s) => s);
 });
 
-final selectedServiceProvider = StateProvider<CropDusterService?>((ref) => null);
+final selectedServiceProvider =
+    StateProvider<CropDusterService?>((ref) => null);
 
 final contactPayloadProvider = Provider<CropDusterContactPayload?>((ref) {
   final activePlan = ref.watch(sprayPlanNotifierProvider).valueOrNull;

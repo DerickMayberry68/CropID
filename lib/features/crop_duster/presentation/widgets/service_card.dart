@@ -14,6 +14,12 @@ class ServiceCard extends StatelessWidget {
     this.contextSummary,
   });
 
+  IconData get _serviceIcon => switch (service.serviceType) {
+        SprayingServiceType.drone => Icons.smart_toy_outlined,
+        SprayingServiceType.agAir => Icons.flight_takeoff,
+        SprayingServiceType.coOp => Icons.storefront_outlined,
+      };
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -25,11 +31,27 @@ class ServiceCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.agriculture, size: 28, color: Colors.green),
+                Icon(_serviceIcon, size: 28, color: Colors.green),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(service.name,
-                      style: Theme.of(context).textTheme.titleMedium),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        service.name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        service.serviceType.label,
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -29,6 +29,7 @@ mixin _$CropDusterService {
   double? get longitude => throw _privateConstructorUsedError;
   String? get address => throw _privateConstructorUsedError;
   String? get state => throw _privateConstructorUsedError;
+  SprayingServiceType get serviceType => throw _privateConstructorUsedError;
 
   /// Approximate service radius in miles
   int? get serviceRadiusMiles => throw _privateConstructorUsedError;
@@ -56,6 +57,7 @@ abstract class $CropDusterServiceCopyWith<$Res> {
       double? longitude,
       String? address,
       String? state,
+      SprayingServiceType serviceType,
       int? serviceRadiusMiles,
       bool isActive});
 }
@@ -82,6 +84,7 @@ class _$CropDusterServiceCopyWithImpl<$Res, $Val extends CropDusterService>
     Object? longitude = freezed,
     Object? address = freezed,
     Object? state = freezed,
+    Object? serviceType = null,
     Object? serviceRadiusMiles = freezed,
     Object? isActive = null,
   }) {
@@ -122,6 +125,10 @@ class _$CropDusterServiceCopyWithImpl<$Res, $Val extends CropDusterService>
           ? _value.state
           : state // ignore: cast_nullable_to_non_nullable
               as String?,
+      serviceType: null == serviceType
+          ? _value.serviceType
+          : serviceType // ignore: cast_nullable_to_non_nullable
+              as SprayingServiceType,
       serviceRadiusMiles: freezed == serviceRadiusMiles
           ? _value.serviceRadiusMiles
           : serviceRadiusMiles // ignore: cast_nullable_to_non_nullable
@@ -152,6 +159,7 @@ abstract class _$$CropDusterServiceImplCopyWith<$Res>
       double? longitude,
       String? address,
       String? state,
+      SprayingServiceType serviceType,
       int? serviceRadiusMiles,
       bool isActive});
 }
@@ -176,6 +184,7 @@ class __$$CropDusterServiceImplCopyWithImpl<$Res>
     Object? longitude = freezed,
     Object? address = freezed,
     Object? state = freezed,
+    Object? serviceType = null,
     Object? serviceRadiusMiles = freezed,
     Object? isActive = null,
   }) {
@@ -216,6 +225,10 @@ class __$$CropDusterServiceImplCopyWithImpl<$Res>
           ? _value.state
           : state // ignore: cast_nullable_to_non_nullable
               as String?,
+      serviceType: null == serviceType
+          ? _value.serviceType
+          : serviceType // ignore: cast_nullable_to_non_nullable
+              as SprayingServiceType,
       serviceRadiusMiles: freezed == serviceRadiusMiles
           ? _value.serviceRadiusMiles
           : serviceRadiusMiles // ignore: cast_nullable_to_non_nullable
@@ -241,6 +254,7 @@ class _$CropDusterServiceImpl implements _CropDusterService {
       this.longitude,
       this.address,
       this.state,
+      this.serviceType = SprayingServiceType.agAir,
       this.serviceRadiusMiles,
       this.isActive = true});
 
@@ -265,6 +279,9 @@ class _$CropDusterServiceImpl implements _CropDusterService {
   final String? address;
   @override
   final String? state;
+  @override
+  @JsonKey()
+  final SprayingServiceType serviceType;
 
   /// Approximate service radius in miles
   @override
@@ -275,7 +292,7 @@ class _$CropDusterServiceImpl implements _CropDusterService {
 
   @override
   String toString() {
-    return 'CropDusterService(id: $id, name: $name, phone: $phone, email: $email, website: $website, latitude: $latitude, longitude: $longitude, address: $address, state: $state, serviceRadiusMiles: $serviceRadiusMiles, isActive: $isActive)';
+    return 'CropDusterService(id: $id, name: $name, phone: $phone, email: $email, website: $website, latitude: $latitude, longitude: $longitude, address: $address, state: $state, serviceType: $serviceType, serviceRadiusMiles: $serviceRadiusMiles, isActive: $isActive)';
   }
 
   @override
@@ -294,6 +311,8 @@ class _$CropDusterServiceImpl implements _CropDusterService {
                 other.longitude == longitude) &&
             (identical(other.address, address) || other.address == address) &&
             (identical(other.state, state) || other.state == state) &&
+            (identical(other.serviceType, serviceType) ||
+                other.serviceType == serviceType) &&
             (identical(other.serviceRadiusMiles, serviceRadiusMiles) ||
                 other.serviceRadiusMiles == serviceRadiusMiles) &&
             (identical(other.isActive, isActive) ||
@@ -302,8 +321,20 @@ class _$CropDusterServiceImpl implements _CropDusterService {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, phone, email, website,
-      latitude, longitude, address, state, serviceRadiusMiles, isActive);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      phone,
+      email,
+      website,
+      latitude,
+      longitude,
+      address,
+      state,
+      serviceType,
+      serviceRadiusMiles,
+      isActive);
 
   @JsonKey(ignore: true)
   @override
@@ -331,6 +362,7 @@ abstract class _CropDusterService implements CropDusterService {
       final double? longitude,
       final String? address,
       final String? state,
+      final SprayingServiceType serviceType,
       final int? serviceRadiusMiles,
       final bool isActive}) = _$CropDusterServiceImpl;
 
@@ -355,6 +387,8 @@ abstract class _CropDusterService implements CropDusterService {
   String? get address;
   @override
   String? get state;
+  @override
+  SprayingServiceType get serviceType;
   @override
 
   /// Approximate service radius in miles

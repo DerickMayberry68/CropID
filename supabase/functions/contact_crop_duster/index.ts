@@ -1,24 +1,8 @@
-// ============================================================
-// CropID Edge Function: contact_crop_duster
-// Sends SMS/email to a registered crop duster service on behalf
-// of a farmer using Twilio and SendGrid when configured.
-//
-// Deploy: supabase functions deploy contact_crop_duster
-// Required secrets:
-// - SUPABASE_URL
-// - SUPABASE_SERVICE_ROLE_KEY
-// Optional SMS:
-// - TWILIO_SID
-// - TWILIO_TOKEN
-// - TWILIO_FROM_NUMBER
-// Optional email:
-// - SENDGRID_API_KEY
-// - SENDGRID_FROM_EMAIL
-// - SENDGRID_FROM_NAME
-// ============================================================
-
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  createAdminClient,
+  HttpError,
+  requireAuthenticatedUser,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,16 +12,46 @@ const corsHeaders = {
 };
 
 interface ContactCropDusterPayload {
-  service_id: string;
-  farmer_id: string;
-  field_name: string;
-  chemical_names: string[];
-  danger_count: number;
-  lat?: number;
-  lng?: number;
-  message?: string;
-  send_sms?: boolean;
-  send_email?: boolean;
+  service_id?: unknown;
+  farmer_id?: unknown;
+  field_name?: unknown;
+  chemical_names?: unknown;
+  danger_count?: unknown;
+  lat?: unknown;
+  lng?: unknown;
+  message?: unknown;
+  send_sms?: unknown;
+  send_email?: unknown;
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function requiredString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new HttpError(400, `Missing ${field}`);
+  }
+  return value.trim();
+}
+
+function stringList(value: unknown, limit: number): string[] {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, limit);
+}
+
+function optionalNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 async function sendSmsTwilio(to: string, body: string) {
@@ -60,20 +74,14 @@ async function sendSmsTwilio(to: string, body: string) {
       body: new URLSearchParams({
         To: to,
         From: from,
-        Body: body,
+        Body: body.slice(0, 1500),
       }),
     },
   );
 
-  if (!response.ok) {
-    return {
-      sent: false,
-      reason: `twilio_${response.status}`,
-      error: await response.text(),
-    };
-  }
-
-  return { sent: true };
+  return response.ok
+    ? { sent: true }
+    : { sent: false, reason: `twilio_${response.status}` };
 }
 
 async function sendEmailSendGrid(args: {
@@ -105,89 +113,89 @@ async function sendEmailSendGrid(args: {
     }),
   });
 
-  if (!response.ok) {
-    return {
-      sent: false,
-      reason: `sendgrid_${response.status}`,
-      error: await response.text(),
-    };
-  }
-
-  return { sent: true };
+  return response.ok
+    ? { sent: true }
+    : { sent: false, reason: `sendgrid_${response.status}` };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const admin = createAdminClient();
+    const user = await requireAuthenticatedUser(req, admin);
+    const payload = await req.json() as ContactCropDusterPayload;
 
-    const payload: ContactCropDusterPayload = await req.json();
-    const sendSms = payload.send_sms ?? true;
-    const sendEmail = payload.send_email ?? true;
+    const serviceId = requiredString(payload.service_id, "service_id");
+    const farmerId = requiredString(payload.farmer_id, "farmer_id");
+    const fieldName = requiredString(payload.field_name, "field_name")
+      .slice(0, 200);
 
-    if (!payload.service_id || !payload.farmer_id) {
-      return new Response(
-        JSON.stringify({ error: "Missing service_id or farmer_id" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        },
-      );
+    if (farmerId !== user.id) {
+      throw new HttpError(403, "Farmer identity does not match the session");
     }
 
+    const sendSms = payload.send_sms === undefined
+      ? true
+      : payload.send_sms === true;
+    const sendEmail = payload.send_email === true;
     if (!sendSms && !sendEmail) {
-      return new Response(
-        JSON.stringify({ error: "No delivery channel requested" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        },
-      );
+      throw new HttpError(400, "No delivery channel requested");
     }
 
-    const { data: service, error: serviceErr } = await supabase
+    const { data: service, error: serviceError } = await admin
       .from("crop_duster_services")
       .select("id, name, phone, email, is_active")
-      .eq("id", payload.service_id)
+      .eq("id", serviceId)
       .eq("is_active", true)
       .single();
 
-    if (serviceErr) throw serviceErr;
+    if (serviceError || !service) {
+      throw new HttpError(404, "Active crop-duster service not found");
+    }
 
-    const { data: farmer, error: farmerErr } = await supabase
+    const { data: farmer, error: farmerError } = await admin
       .from("profiles")
       .select("id, email, phone_number, full_name, farm_name")
-      .eq("id", payload.farmer_id)
+      .eq("id", user.id)
       .single();
 
-    if (farmerErr) throw farmerErr;
+    if (farmerError || !farmer) {
+      throw new HttpError(404, "Farmer profile not found");
+    }
 
-    const senderName = farmer.farm_name ?? farmer.full_name ??
+    const senderName = farmer.farm_name ??
+      farmer.full_name ??
       "A CropID farmer";
-    const chemicalList = payload.chemical_names.length > 0
-      ? payload.chemical_names.join(", ")
-      : "TBD";
-    const locationLink = payload.lat != null && payload.lng != null
-      ? `https://maps.google.com/?q=${payload.lat},${payload.lng}`
+    const chemicalNames = stringList(payload.chemical_names, 30);
+    const chemicalList = chemicalNames.join(", ") || "TBD";
+    const dangerCount = typeof payload.danger_count === "number" &&
+        Number.isInteger(payload.danger_count)
+      ? Math.max(0, Math.min(payload.danger_count, 100))
+      : 0;
+    const lat = optionalNumber(payload.lat);
+    const lng = optionalNumber(payload.lng);
+    const locationLink = lat !== null && lng !== null
+      ? `https://maps.google.com/?q=${lat},${lng}`
       : "Coordinates not available";
 
-    const message = payload.message ??
+    const customMessage = typeof payload.message === "string"
+      ? payload.message.trim().slice(0, 4000)
+      : "";
+    const message = customMessage ||
       `Hello,\n\n` +
-        `${senderName} needs spray service for field "${payload.field_name}".\n\n` +
+        `${senderName} needs spray service for field "${fieldName}".\n\n` +
         `Location: ${locationLink}\n` +
         `Chemicals: ${chemicalList}\n` +
-        `${
-          payload.danger_count > 0
-            ? `Neighboring at-risk fields: ${payload.danger_count}\n`
-            : ""
-        }` +
-        `Please reply to schedule this request through CropID.\n`;
+        (dangerCount > 0
+          ? `Neighboring at-risk fields: ${dangerCount}\n`
+          : "") +
+        "Please reply to schedule this request through CropID.\n";
 
     const results = {
       sms: "not_requested",
@@ -212,7 +220,7 @@ serve(async (req) => {
       } else {
         const emailResult = await sendEmailSendGrid({
           to: service.email,
-          subject: `CropID Spray Request - ${payload.field_name}`,
+          subject: `CropID Spray Request - ${fieldName}`,
           text: message,
           replyTo: farmer.email,
         });
@@ -222,14 +230,13 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify(results), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return jsonResponse(results);
+  } catch (error) {
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof HttpError
+      ? error.message
+      : "Internal server error";
+    console.error(error);
+    return jsonResponse({ error: message }, status);
   }
 });

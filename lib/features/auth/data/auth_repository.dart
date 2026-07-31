@@ -104,9 +104,14 @@ class AuthRepository {
   Future<Either<String, FarmerProfile>> updateProfile(
       FarmerProfile profile) async {
     try {
+      final updates = profile.toJson()
+        ..remove('id')
+        ..remove('created_at')
+        ..remove('updated_at')
+        ..remove('gdpr_consent_at');
       final data = await _client
           .from(SupabaseConstants.profilesTable)
-          .update(profile.toJson())
+          .update(updates)
           .eq('id', profile.id)
           .select()
           .single();

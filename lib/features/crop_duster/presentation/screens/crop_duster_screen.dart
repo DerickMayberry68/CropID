@@ -29,27 +29,60 @@ class _CropDusterScreenState extends ConsumerState<CropDusterScreen> {
   Widget build(BuildContext context) {
     final results = ref.watch(cropDusterSearchResultsProvider);
     final payload = ref.watch(contactPayloadProvider);
+    final selectedType = ref.watch(selectedSprayingServiceTypeProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Spraying Services'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(64),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Search by name or state...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          preferredSize: const Size.fromHeight(116),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or state...',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onChanged: (value) => ref
+                      .read(cropDusterSearchQueryProvider.notifier)
+                      .state = value,
+                ),
               ),
-              onChanged: (val) =>
-                  ref.read(cropDusterSearchQueryProvider.notifier).state = val,
-            ),
+              SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  children: [
+                    ChoiceChip(
+                      label: const Text('All'),
+                      selected: selectedType == null,
+                      onSelected: (_) => ref
+                          .read(selectedSprayingServiceTypeProvider.notifier)
+                          .state = null,
+                    ),
+                    for (final type in SprayingServiceType.values) ...[
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: Text(type.label),
+                        selected: selectedType == type,
+                        onSelected: (_) => ref
+                            .read(selectedSprayingServiceTypeProvider.notifier)
+                            .state = type,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -93,11 +126,12 @@ class _CropDusterScreenState extends ConsumerState<CropDusterScreen> {
     required CropDusterService service,
     required CropDusterContactPayload? payload,
   }) {
-    final hasAnyChannel =
-        service.phone.trim().isNotEmpty || (service.email ?? '').trim().isNotEmpty;
+    final hasAnyChannel = service.phone.trim().isNotEmpty ||
+        (service.email ?? '').trim().isNotEmpty;
     if (!hasAnyChannel) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppConstants.contactStateUnavailableLabel)),
+        const SnackBar(
+            content: Text(AppConstants.contactStateUnavailableLabel)),
       );
       return;
     }

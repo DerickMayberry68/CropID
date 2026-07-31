@@ -12,15 +12,19 @@ class CropDusterRepository {
   Future<Either<String, List<CropDusterService>>> getNearbyServices({
     required double lat,
     required double lng,
+    SprayingServiceType? serviceType,
     double radiusDeg = 2.0, // ~200km rough bounding box
   }) async {
     try {
       // TODO: Phase 4 — Replace with PostGIS ST_DWithin RPC for true geo-radius
-      final data = await _client
+      var request = _client
           .from(SupabaseConstants.cropDusterServicesTable)
           .select()
-          .eq('is_active', true)
-          .order('name');
+          .eq('is_active', true);
+      if (serviceType != null) {
+        request = request.eq('service_type', serviceType.databaseValue);
+      }
+      final data = await request.order('name');
       return Right(
           (data as List).map((e) => CropDusterService.fromJson(e)).toList());
     } catch (e) {
@@ -29,14 +33,19 @@ class CropDusterRepository {
   }
 
   Future<Either<String, List<CropDusterService>>> searchServices(
-      String query) async {
+    String query, {
+    SprayingServiceType? serviceType,
+  }) async {
     try {
-      final data = await _client
+      var request = _client
           .from(SupabaseConstants.cropDusterServicesTable)
           .select()
           .or('name.ilike.%$query%,state.ilike.%$query%')
-          .eq('is_active', true)
-          .limit(20);
+          .eq('is_active', true);
+      if (serviceType != null) {
+        request = request.eq('service_type', serviceType.databaseValue);
+      }
+      final data = await request.order('name').limit(20);
       return Right(
           (data as List).map((e) => CropDusterService.fromJson(e)).toList());
     } catch (e) {

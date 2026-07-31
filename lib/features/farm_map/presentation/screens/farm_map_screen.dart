@@ -12,9 +12,12 @@ import '../../../../shared/services/location_service.dart';
 import '../../../../shared/widgets/loading_overlay.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../notifications/providers/notification_provider.dart';
+import '../../data/models/csb_field.dart';
 import '../../data/models/field.dart';
 import '../../providers/farm_map_provider.dart';
 import '../widgets/adjacent_fields_overlay.dart';
+import '../widgets/claim_field_sheet.dart';
+import '../widgets/claimable_fields_overlay.dart';
 import 'draw_field_screen.dart';
 import 'edit_field_screen.dart';
 
@@ -47,6 +50,29 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
 
   void _onFieldTap(Field field) {
     ref.read(selectedFieldProvider.notifier).state = field;
+  }
+
+  Future<void> _onClaimableFieldTap(CsbField csb) async {
+    final claimed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ClaimFieldSheet(csbField: csb),
+    );
+
+    if (claimed == true && mounted) {
+      // Leave claim mode so the farmer sees their new field in the normal view.
+      ref.read(claimModeProvider.notifier).state = false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Field claimed. Set its crop next.')),
+      );
+    }
+  }
+
+  /// Reloads claimable boundaries around wherever the farmer panned to.
+  void _onMapMoved(MapCamera camera) {
+    if (!ref.read(claimModeProvider)) return;
+    ref.read(mapCenterProvider.notifier).state = camera.center;
   }
 
   void _openSelectedFieldDetails() {
@@ -174,6 +200,8 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
   @override
   Widget build(BuildContext context) {
     final myFieldsAsync = ref.watch(myFieldsProvider);
+    final claimMode = ref.watch(claimModeProvider);
+    final claimableAsync = ref.watch(csbFieldsNearProvider);
     final selectedField = ref.watch(selectedFieldProvider);
     final adjacentFieldsAsync = ref.watch(adjacentFieldsProvider);
     final center = ref.watch(mapCenterProvider);
@@ -189,12 +217,47 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
     final adjacentCount = adjacentFieldsAsync.valueOrNull?.length ?? 0;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const DrawFieldScreen()),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom + 88,
         ),
-        icon: const Icon(Icons.add_location_alt_outlined),
-        label: const Text('Add Field'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (claimMode)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: FloatingActionButton.small(
+                  heroTag: 'draw_field_manual',
+                  tooltip: 'Draw a field by hand instead',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DrawFieldScreen()),
+                  ),
+                  child: const Icon(Icons.gesture_outlined),
+                ),
+              ),
+            FloatingActionButton.extended(
+              heroTag: 'claim_field_toggle',
+              backgroundColor: claimMode ? AppTheme.skyBlue : null,
+              onPressed: () {
+                final next = !claimMode;
+                ref.read(claimModeProvider.notifier).state = next;
+                if (next) {
+                  // Search around wherever the map is currently looking.
+                  ref.read(mapCenterProvider.notifier).state =
+                      _mapController.camera.center;
+                }
+              },
+              icon: Icon(
+                claimMode
+                    ? Icons.close_rounded
+                    : Icons.add_location_alt_outlined,
+              ),
+              label: Text(claimMode ? 'Done' : 'Add Field'),
+            ),
+          ],
+        ),
       ),
       body: Stack(
         children: [
@@ -205,12 +268,16 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
               initialZoom: AppConstants.defaultMapZoom,
               onTap: (_, __) =>
                   ref.read(selectedFieldProvider.notifier).state = null,
+              onMapEvent: (event) {
+                if (event is MapEventMoveEnd) _onMapMoved(event.camera);
+              },
             ),
             children: [
               TileLayer(
                 urlTemplate: AppConstants.osmTileUrl,
                 userAgentPackageName: 'app.cropid',
               ),
+              if (claimMode) const ClaimableFieldsOverlay(),
               myFieldsAsync.when(
                 loading: () => const PolygonLayer(polygons: []),
                 error: (_, __) => const PolygonLayer(polygons: []),
@@ -282,6 +349,8 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                 ),
                 orElse: () => const MarkerLayer(markers: []),
               ),
+              if (claimMode)
+                ClaimableFieldsMarkers(onTap: _onClaimableFieldTap),
             ],
           ),
           IgnorePointer(
@@ -317,7 +386,13 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                         onLocate: _centerOnUserLocation,
                       ),
                       const SizedBox(height: 14),
-                      if (selectedField != null)
+                      if (claimMode)
+                        _ClaimModeCard(
+                          claimableCount:
+                              claimableAsync.valueOrNull?.length ?? 0,
+                          isLoading: claimableAsync.isLoading,
+                        )
+                      else if (selectedField != null)
                         _OperationsCard(
                           selectedField: selectedField,
                           fieldCount: myFieldCount,
@@ -379,6 +454,66 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                   )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClaimModeCard extends StatelessWidget {
+  final int claimableCount;
+  final bool isLoading;
+
+  const _ClaimModeCard({
+    required this.claimableCount,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String message;
+    if (isLoading) {
+      message = 'Loading field boundaries in this area...';
+    } else if (claimableCount == 0) {
+      message = 'No unclaimed boundaries here. Pan the map to another area, '
+          'or draw a field by hand.';
+    } else {
+      message = 'Tap any outlined field to claim it as yours. '
+          'Pan the map to find more.';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AppTheme.panelDecoration(borderColor: AppTheme.skyBlue),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.touch_app_rounded, color: AppTheme.skyBlue),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'CLAIM YOUR FIELDS',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: AppTheme.skyBlue,
+                      ),
+                ),
+              ),
+              if (!isLoading && claimableCount > 0)
+                _StatusChip(
+                  icon: Icons.crop_square_rounded,
+                  label: '$claimableCount nearby',
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.textMuted,
+                ),
           ),
         ],
       ),

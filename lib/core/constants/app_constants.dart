@@ -8,6 +8,9 @@ class AppConstants {
   /// Radius (in meters) to search for adjacent fields
   static const double adjacentFieldRadiusMeters = 500.0;
 
+  /// Radius (in meters) to search for claimable USDA field boundaries
+  static const double claimSearchRadiusMeters = 3000.0;
+
   /// OpenStreetMap tile URL template (no API key required)
   static const String osmTileUrl =
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png';

@@ -14,7 +14,10 @@ INSERT INTO crops (id, name, scientific_name, tags) VALUES
   ('alfalfa',     'Alfalfa',          'Medicago sativa',      ARRAY['legume','forage']),
   ('potato',      'Potato',           'Solanum tuberosum',    ARRAY['vegetable','tuber']),
   ('sugar_beet',  'Sugar Beet',       'Beta vulgaris',        ARRAY['root','sugar'])
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  scientific_name = EXCLUDED.scientific_name,
+  tags = EXCLUDED.tags;
 
 -- ── Common herbicides / insecticides ─────────────────────────
 INSERT INTO chemicals (id, name, common_name, toxicity_level,
@@ -70,14 +73,132 @@ INSERT INTO chemicals (id, name, common_name, toxicity_level,
     ARRAY[]::text[],
     'Fungicide. Generally low crop cross-contamination risk.')
 
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  common_name = EXCLUDED.common_name,
+  toxicity_level = EXCLUDED.toxicity_level,
+  dangerous_to_crop_ids = EXCLUDED.dangerous_to_crop_ids,
+  dangerous_to_crop_names = EXCLUDED.dangerous_to_crop_names,
+  notes = EXCLUDED.notes;
 
 -- ── Sample crop duster services ─────────────────────────────
-INSERT INTO crop_duster_services (name, phone, email, address, state, service_radius_miles, is_active)
+INSERT INTO crop_duster_services (
+  id,
+  name,
+  phone,
+  email,
+  address,
+  state,
+  service_type,
+  service_radius_miles,
+  is_active
+)
 VALUES
-  ('Midwest AirSpray LLC',   '555-0101', 'info@midwestairspray.example',  '100 Airfield Rd, Springfield, IL',  'IL', 150, true),
-  ('Central Plains Aerial',  '555-0202', 'fly@centralplains.example',     '45 Crop Way, Wichita, KS',          'KS', 200, true),
-  ('Delta AgAir Services',   '555-0303', NULL,                             '77 Hangar Ln, Memphis, TN',         'TN', 120, true),
-  ('High Plains Ag Aviation','555-0404', 'contact@highplains.example',    '12 Skyway Blvd, Lubbock, TX',       'TX', 175, true),
-  ('Corn Belt Air Ag',        '555-0505', 'info@cornbeltair.example',      '8 Spray Lane, Ames, IA',            'IA', 100, true)
-ON CONFLICT DO NOTHING;
+  (
+    '10000000-0000-4000-8000-000000000001',
+    'Midwest AirSpray LLC',
+    '555-0101',
+    'info@midwestairspray.example',
+    '100 Airfield Rd, Springfield, IL',
+    'IL',
+    'ag_air',
+    150,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000002',
+    'Central Plains Aerial',
+    '555-0202',
+    'fly@centralplains.example',
+    '45 Crop Way, Wichita, KS',
+    'KS',
+    'ag_air',
+    200,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000003',
+    'Delta AgAir Services',
+    '555-0303',
+    NULL,
+    '77 Hangar Ln, Memphis, TN',
+    'TN',
+    'ag_air',
+    120,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000004',
+    'High Plains Ag Aviation',
+    '555-0404',
+    'contact@highplains.example',
+    '12 Skyway Blvd, Lubbock, TX',
+    'TX',
+    'ag_air',
+    175,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000005',
+    'Corn Belt Air Ag',
+    '555-0505',
+    'info@cornbeltair.example',
+    '8 Spray Lane, Ames, IA',
+    'IA',
+    'ag_air',
+    100,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000006',
+    'Prairie Drone Applications',
+    '555-0606',
+    'dispatch@prairiedrone.example',
+    '240 Technology Dr, Lincoln, NE',
+    'NE',
+    'drone',
+    60,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000007',
+    'Heartland Drone Spraying',
+    '555-0707',
+    'service@heartlanddrone.example',
+    '19 Innovation Way, Columbia, MO',
+    'MO',
+    'drone',
+    75,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000008',
+    'Farmers Cooperative Crop Services',
+    '555-0808',
+    'agronomy@farmerscoop.example',
+    '310 Cooperative Ave, Des Moines, IA',
+    'IA',
+    'co_op',
+    90,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000009',
+    'County Line Co-op Agronomy',
+    '555-0909',
+    'spraying@countylinecoop.example',
+    '62 County Line Rd, Salina, KS',
+    'KS',
+    'co_op',
+    110,
+    true
+  )
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  phone = EXCLUDED.phone,
+  email = EXCLUDED.email,
+  address = EXCLUDED.address,
+  state = EXCLUDED.state,
+  service_type = EXCLUDED.service_type,
+  service_radius_miles = EXCLUDED.service_radius_miles,
+  is_active = EXCLUDED.is_active;

@@ -18,6 +18,9 @@ _$CropDusterServiceImpl _$$CropDusterServiceImplFromJson(
       longitude: (json['longitude'] as num?)?.toDouble(),
       address: json['address'] as String?,
       state: json['state'] as String?,
+      serviceType: $enumDecodeNullable(
+              _$SprayingServiceTypeEnumMap, json['service_type']) ??
+          SprayingServiceType.agAir,
       serviceRadiusMiles: (json['service_radius_miles'] as num?)?.toInt(),
       isActive: json['is_active'] as bool? ?? true,
     );
@@ -34,6 +37,13 @@ Map<String, dynamic> _$$CropDusterServiceImplToJson(
       'longitude': instance.longitude,
       'address': instance.address,
       'state': instance.state,
+      'service_type': _$SprayingServiceTypeEnumMap[instance.serviceType]!,
       'service_radius_miles': instance.serviceRadiusMiles,
       'is_active': instance.isActive,
     };
+
+const _$SprayingServiceTypeEnumMap = {
+  SprayingServiceType.drone: 'drone',
+  SprayingServiceType.agAir: 'ag_air',
+  SprayingServiceType.coOp: 'co_op',
+};

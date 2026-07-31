@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dartz/dartz.dart';
 
 import '../../../core/constants/supabase_constants.dart';
+import 'models/csb_field.dart';
 import 'models/field.dart';
 
 /// Handles field CRUD and adjacent-field queries.
@@ -31,7 +32,11 @@ class FieldRepository {
       if (userId == null) return const Left('Not authenticated');
 
       // Always stamp with the authenticated user — never trust client-passed farmerId
-      final json = field.toJson()..['farmer_id'] = userId;
+      final json = field.toJson()
+        ..['farmer_id'] = userId
+        ..remove('created_at')
+        ..remove('updated_at');
+      if ((json['id'] as String?)?.isEmpty ?? true) json.remove('id');
 
       // Convert boundary points to PostGIS EWKT so ST_DWithin queries work.
       // boundary_points (JSONB) is kept for client-side rendering roundtrip.
@@ -52,7 +57,10 @@ class FieldRepository {
 
   Future<Either<String, Field>> updateField(Field field) async {
     try {
-      final json = field.toJson();
+      final json = field.toJson()
+        ..remove('id')
+        ..remove('created_at')
+        ..remove('updated_at');
       if (field.boundaryPoints.isNotEmpty) {
         json['boundary'] = _toEwkt(field.boundaryPoints);
       }
@@ -91,7 +99,7 @@ class FieldRepository {
 
   // ── Adjacent fields ───────────────────────────────────────────────────────
   /// Fetch visible fields within [radiusMeters] using PostGIS ST_DWithin.
-  /// Calls the `fields_within_radius` RPC defined in schema.sql.
+  /// Calls the `fields_within_radius` RPC defined in the baseline migration.
   Future<Either<String, List<Field>>> getAdjacentFields({
     required double lat,
     required double lng,
@@ -115,10 +123,81 @@ class FieldRepository {
     }
   }
 
+  // ── Claimable USDA boundaries (CSB) ──────────────────────────────────────
+  /// Fetch unclaimed USDA field boundaries within [radiusMeters] of a point.
+  /// Calls the `csb_fields_near` RPC, which already filters out boundaries
+  /// another farmer has claimed.
+  Future<Either<String, List<CsbField>>> getCsbFieldsNear({
+    required double lat,
+    required double lng,
+    double radiusMeters = 3000,
+  }) async {
+    try {
+      final data = await _client.rpc(
+        'csb_fields_near',
+        params: {
+          'lat': lat,
+          'lng': lng,
+          'radius_m': radiusMeters,
+        },
+      );
+
+      return Right(
+        (data as List)
+            .map((e) => CsbField.fromJson(Map<String, dynamic>.from(e as Map)))
+            .where((csb) => csb.isRenderable)
+            .toList(),
+      );
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  /// Claim a USDA boundary as an owned field via the `claim_csb_field` RPC.
+  /// The RPC copies the geometry, stamps the caller as owner, and guards
+  /// against double-claims.
+  Future<Either<String, Field>> claimCsbField({
+    required String csbId,
+    String? name,
+  }) async {
+    try {
+      final data = await _client.rpc(
+        'claim_csb_field',
+        params: {
+          'p_csb_id': csbId,
+          if (name != null && name.trim().isNotEmpty) 'p_name': name.trim(),
+        },
+      );
+
+      // The RPC returns `setof fields`-shaped data: a single row, which the
+      // client may surface either bare or wrapped in a list.
+      final row = data is List ? (data.isEmpty ? null : data.first) : data;
+      if (row == null) return const Left('Claim did not return a field');
+
+      return Right(Field.fromJson(Map<String, dynamic>.from(row as Map)));
+    } catch (e) {
+      return Left(_claimErrorMessage(e));
+    }
+  }
+
+  /// Maps RPC failures onto guidance a farmer can act on.
+  String _claimErrorMessage(Object error) {
+    final message = error.toString();
+    if (message.contains('already been claimed')) {
+      return 'That field has already been claimed by another account.';
+    }
+    if (message.contains('Not authenticated')) {
+      return 'Sign in again to claim fields.';
+    }
+    if (message.contains('not found')) {
+      return 'That boundary is no longer available.';
+    }
+    return message;
+  }
+
   // ── Realtime subscription ────────────────────────────────────────────────
 
-  RealtimeChannel subscribeToFieldUpdates(
-      void Function(Field field) onUpdate) {
+  RealtimeChannel subscribeToFieldUpdates(void Function(Field field) onUpdate) {
     return _client
         .channel(SupabaseConstants.fieldUpdatesChannel)
         .onPostgresChanges(

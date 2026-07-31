@@ -22,7 +22,8 @@ Future<void> main() async {
   // Initialize Supabase
   await Supabase.initialize(
     url: SupabaseConstants.supabaseUrl,
-    anonKey: SupabaseConstants.supabaseAnonKey,
+    // The installed client accepts publishable keys through this legacy name.
+    anonKey: SupabaseConstants.supabasePublishableKey,
     // realtimeClientOptions can be configured here for Realtime
   );
 

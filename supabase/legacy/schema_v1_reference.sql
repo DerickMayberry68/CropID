@@ -1,3 +1,4 @@
+-- LEGACY REFERENCE ONLY. Use the timestamped files in supabase/migrations.
 -- ============================================================
 -- CropID Supabase Schema
 -- Run this in the Supabase SQL Editor (Dashboard → SQL Editor)

@@ -34,6 +34,14 @@ migrate_working_dir/
 /coverage/
 .codex/
 
+# Local credentials and function secrets
+.env
+.env.*
+!.env.example
+
+# Generated USDA CSB seed data — regenerate with supabase/scripts/import_csb.py
+supabase/seed/
+
 # Symbolication related
 app.*.symbols
 
