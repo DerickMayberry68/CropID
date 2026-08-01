@@ -42,6 +42,10 @@ migrate_working_dir/
 # Generated USDA CSB seed data — regenerate with supabase/scripts/import_csb.py
 supabase/seed/
 
+# Flutter SDK fetched by the Vercel build, and Vercel's local CLI state
+.vercel-flutter/
+.vercel/
+
 # Symbolication related
 app.*.symbols
 
