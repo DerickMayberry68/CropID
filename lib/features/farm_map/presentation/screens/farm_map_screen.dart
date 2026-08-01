@@ -295,12 +295,8 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                               : AppTheme.primaryGreenLight,
                           borderStrokeWidth:
                               field.id == selectedField?.id ? 3 : 2,
-                          label: field.name,
-                          labelStyle: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
+                          // Name and crop are drawn by the _FieldLabel marker,
+                          // which stays legible over the light basemap.
                         ),
                       )
                       .toList(),
@@ -314,33 +310,14 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
                       .map(
                         (field) => Marker(
                           point: field.latLngBoundary.centroid,
-                          width: 60,
-                          height: 60,
+                          width: 168,
+                          height: 62,
                           child: GestureDetector(
                             onTap: () => _onFieldTap(field),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    color: field.id == selectedField?.id
-                                        ? AppTheme.accentAmber
-                                        : AppTheme.primaryGreenLight,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppTheme.backgroundBase,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.place,
-                                    size: 16,
-                                    color: AppTheme.backgroundBase,
-                                  ),
-                                ),
-                              ],
+                            child: _FieldLabel(
+                              name: field.name,
+                              cropName: field.currentCropName,
+                              isSelected: field.id == selectedField?.id,
                             ),
                           ),
                         ),
@@ -456,6 +433,74 @@ class _FarmMapScreenState extends ConsumerState<FarmMapScreen> {
             orElse: () => const SizedBox.shrink(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// On-map label for an owned field: name over crop.
+///
+/// Drawn as a solid chip rather than a polygon label because the basemap is
+/// light and the polygon fills are translucent — plain text over them is not
+/// reliably legible.
+class _FieldLabel extends StatelessWidget {
+  final String name;
+  final String? cropName;
+  final bool isSelected;
+
+  const _FieldLabel({
+    required this.name,
+    required this.cropName,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent =
+        isSelected ? AppTheme.accentAmber : AppTheme.primaryGreenLight;
+    final crop = (cropName == null || cropName!.trim().isEmpty)
+        ? 'Crop not set'
+        : cropName!;
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundBase.withValues(alpha: 0.88),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: accent, width: isSelected ? 2 : 1),
+          boxShadow: const [
+            BoxShadow(color: Color(0x40000000), blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accent,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              crop,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 11.5,
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../data/models/csb_field.dart';
+import '../../data/models/field.dart';
 import '../../providers/farm_map_provider.dart';
 import '../../../spray_planning/providers/spray_plan_provider.dart';
 
@@ -24,7 +26,9 @@ class AdjacentFieldsOverlay extends ConsumerWidget {
     final polygons = <Polygon>[];
 
     // Unclaimed USDA boundaries first, so claimed fields draw over them.
-    for (final csb in surroundingAsync.valueOrNull ?? const []) {
+    // The fallback must be typed: an untyped `const []` widens the expression
+    // to List<dynamic>, and extension methods do not resolve on dynamic.
+    for (final csb in surroundingAsync.valueOrNull ?? const <CsbField>[]) {
       polygons.add(
         Polygon(
           points: csb.latLngBoundary,
@@ -32,16 +36,17 @@ class AdjacentFieldsOverlay extends ConsumerWidget {
           borderColor: AppTheme.textSoft.withValues(alpha: 0.55),
           borderStrokeWidth: 1,
           label: csb.cropLabel,
+          // Dark text: these sit on the light basemap, not on app chrome.
           labelStyle: const TextStyle(
-            color: AppTheme.textMuted,
+            color: Colors.black54,
             fontSize: 11,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       );
     }
 
-    for (final field in neighborsAsync.valueOrNull ?? const []) {
+    for (final field in neighborsAsync.valueOrNull ?? const <Field>[]) {
       if (field.latLngBoundary.isEmpty) continue;
       final isDangerous = dangerousFieldIds.contains(field.id);
       polygons.add(
